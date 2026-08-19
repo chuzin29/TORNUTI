@@ -1,0 +1,33 @@
+# Dependencies
+node_modules
+
+# Next.js build output
+.next
+-out,
+
+# Production
+out/
+
+# Prisma schema
+.prisma/
+
+# Environment variables
+.env*
+
+# IDE
+.vscode/
+.vscode/
+*.code-workspace
+.idea/
+*.swp
+*.swo
+*~
+
+# Turbopack
+.turbo/
+
+# Logs
+*.log
+
+# Vercel
+.vercel
