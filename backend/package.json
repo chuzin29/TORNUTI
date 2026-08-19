@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start:dev": "nest start:dev",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate"
   },
   "keywords": [],
   "author": "",
@@ -11,6 +13,23 @@
   "description": "",
   "dependencies": {
     "@nestjs/core": "^11.2.1",
-    "@nestjs/platform-express": "^11.2.1"
+    "@nestjs/platform-express": "^11.2.1",
+    "@prisma/client": "^6.1.0",
+    "@neondatabase/serverless": "^1.0.0",
+    "bcryptjs": "^2.4.3",
+    "class-validator": "^0.14.1",
+    "class-transformer": "^0.5.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "reflect-metadata": "^1.1.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.2.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.14.2",
+    "prisma": "^6.1.0"
   }
 }
