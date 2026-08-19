@@ -1,0 +1,61 @@
+/* Configuración de capas para Tailwind */
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: 0 0% 100;
+    --foreground: 0 0% 10;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10;
+    --popover: 0 0% 100;
+    --popover-foreground: 0 0% 10;
+    --primary: 266 80% 50;
+    --primary-foreground: 0 0% 100;
+    --secondary: 210 40% 97.5;
+    --secondary-foreground: 0 0% 10;
+    --muted: 0 0% 96.1;
+    --muted-foreground: 0 0% 45;
+    --accent: 266 60% 55;
+    --destructive: 0 84% 60;
+    --destructive-foreground: 0 0% 100;
+    --border: 0 0% 89.8;
+    --input: 0 0% 89.8;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 0 0% 2;
+    --foreground: 0 0% 98;
+    --card: 0 0% 4;
+    --card-foreground: 0 0% 98;
+    --popover: 0 0% 4;
+    --popover-foreground: 0 0% 98;
+    --primary: 266 80% 50;
+    --primary-foreground: 0 0% 100;
+    --secondary: 210 30% 15;
+    --secondary-foreground: 0 0% 85;
+    --muted: 0 0% 15;
+    --muted-foreground: 0 0% 65;
+    --accent: 266 60% 55;
+    --destructive: 0 63% 31;
+    --destructive-foreground: 0 0% 100;
+    --border: 0 0% 18;
+    --input: 0 0% 18;
+    --radius: 0.5rem;
+  }
+}
+
+@layer utilities {
+  .bg-background {
+    background-color: hsl(var(--background));
+  }
+  .text-foreground {
+    color: hsl(var(--foreground));
+  }
+  .bg-card {
+    background-color: hsl(var(--card));
+  }
+  .text-card-foreground {
+    color: hsl(var(--card-foreground));
+  }
+}

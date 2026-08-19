@@ -1,0 +1,269 @@
+// Prisma Schema for Tornuti
+// Database: Neon (PostgreSQL free tier)
+
+// Generate: npx prisma generate
+// Migrate: npx prisma migrate make init
+// Push: npx prisma db push
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================
+// USER & AUTH
+// =====================
+model User {
+  id          String    @id @default(uuid())
+  email       String    @unique
+  password    String
+  name        String?
+  image       String?
+  role        String    @default("player") // player, captain, organizer, admin
+  aura        Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  tournamentsOrganized  Tournament[]  @relation("Organizer", fields: [organizerId], references: [id])
+  organizerId         String?
+  
+  teamsCreated        Team[]        @relation("Creator")
+  teamsMemberOf       TeamMember[]
+  
+  tournamentRegistrations TournamentRegistration[]
+  matchesAsPlayer1    Match[]       @relation("Player1")
+  matchesAsPlayer2    Match[]       @relation("Player2")
+  
+  auraTransactions    AuraTransaction[]
+  achievements        Achievement[]
+  reports             Report[]
+}
+
+// =====================
+// TEAMS
+// =====================
+model Team {
+  id              String    @id @default(uuid())
+  name            String
+  description     String?
+  image           String?
+  category        String    // e.g., "Deportes", "Gaming", "Comunidad"
+  createdBy       String    // FK to User
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  creator         User      @relation(fields: [createdBy], references: [id], name: "Creator")
+  members         TeamMember[]
+  tournamentRegistrations TournamentRegistration[]
+}
+
+// Team Members junction
+model TeamMember {
+  id          String    @id @default(uuid())
+  userId      String    // FK to User
+  teamId      String    // FK to Team
+  role        String    @default("member") // captain, member
+  joinedAt    DateTime  @default(now())
+  
+  @@unique([userId, teamId])
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+// =====================
+// TOURNAMENTS
+// =====================
+model Tournament {
+  id              String    @id @default(uuid())
+  name            String
+  description     String?
+  format         String    // e.g., "3x3", "round_robin", "elimination"
+  category        String    // e.g., "Deportes", "Gaming", "Comunidad"
+  sport           String?   // e.g., "basketball", "valorant", "free_text"
+  maxParticipants Int
+  currentParticipants Int @default(0)
+  status          String    @default("draft") // draft, published, in_progress, completed
+  organizer       String    // FK to User
+  location        String?   // or "virtual"
+  startDate       DateTime?
+  endDate         DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  organizerRel    User      @relation(fields: [organizer], references: [id], name: "Organizer")
+  registrations   TournamentRegistration[]
+  matches         Match[]
+  groups          TournamentGroup[]
+}
+
+// =====================
+// TOURNAMENT REGISTRATIONS
+// =====================
+model TournamentRegistration {
+  id              String    @id @default(uuid())
+  tournamentId    String    // FK to Tournament
+  userId          String    // FK to User (individual) OR teamId (teams)
+  teamId          String?   // FK to Team (if team registration)
+  status          String    @default("pending") // pending, accepted, rejected
+  registeredAt    DateTime  @default(now())
+  
+  // Relations
+  tournament  Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  team        Team?       @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  
+  @@unique([tournamentId, userId])
+  @@unique([tournamentId, teamId])
+}
+
+// =====================
+// MATCHES
+// =====================
+model Match {
+  id              String    @id @default(uuid())
+  tournamentId    String    // FK to Tournament
+  round           Int       // Round number
+  stage           String    // e.g., "group", "quarterfinal", "final"
+  fieldOrcourt    String?   // e.g., "Field A", "Court 1"
+  player1Id       String?   // FK to User
+  player2Id       String?   // FK to User (for 1v1 or 2v2)
+  team1Id         String?   // FK to Team
+  team2Id         String?   // FK to Team
+  winnerId        String?   // FK to User or Team
+  score1          String?   // e.g., "25-23", "2-1"
+  score2          String?   // e.g., "23-25", "1-2"
+  scheduledAt     DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  status          String    @default("scheduled") // scheduled, in_progress, completed
+  
+  // Relations
+  tournament  Tournament      @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player1       User?       @relation(fields: [player1Id], references: [id], onDelete: SetNull, name: "Player1")
+  player2       User?       @relation(fields: [player2Id], references: [id], onDelete: SetNull)
+  team1         Team?       @relation(fields: [team1Id], references: [id], onDelete: SetNull)
+  team2         Team?       @relation(fields: [team2Id], references: [id], onDelete: SetNull)
+}
+
+// =====================
+// TOURNAMENT GROUPS (for group stage)
+// =====================
+model TournamentGroup {
+  id              String    @id @default(uuid())
+  tournamentId    String    // FK to Tournament
+  name            String    // e.g., "Group A", "Group B"
+  description     String?
+  createdAt       DateTime  @default(now())
+  
+  // Relations
+  tournament  Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  participants    TournamentGroupParticipant[]
+}
+
+// Tournament Group Participants
+model TournamentGroupParticipant {
+  id          String    @id @default(uuid())
+  groupId     String    // FK to TournamentGroup
+  userId       String?   // FK to User
+  teamId       String?   // FK to Team
+  seed         Int?
+  status       String    @default("qualified") // qualified, eliminated, advanced
+  
+  @@unique([groupId, userId])
+  @@unique([groupId, teamId])
+  
+  user        User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  team        Team?      @relation(fields: [teamId], references: [id], onDelete: SetNull)
+}
+
+// =====================
+// STATISTICS
+// =====================
+model PlayerStatistics {
+  id              String    @id @default(uuid())
+  userId          String    // FK to User
+  totalMatches    Int       @default(0)
+  totalWins       Int       @default(0)
+  totalLosses     Int       @default(0)
+  totalDraws      Int       @default(0)
+  totalPoints     Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([userId])
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Team Statistics
+model TeamStatistics {
+  id              String    @id @default(uuid())
+  teamId          String    // FK to Team
+  totalMatches    Int       @default(0)
+  totalWins       Int       @default(0)
+  totalLosses     Int       @default(0)
+  totalDraws      Int       @default(0)
+  totalPoints     Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([teamId])
+  
+  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+// =====================
+// REWARDS & AURA
+// =====================
+model Achievement {
+  id              String    @id @default(uuid())
+  name            String
+  description     String
+  icon            String?   // e.g., "trophy", "medal"
+  criteria        String    // e.g., "win_5_matches", "create_tournament"
+  rewardAura      Int       @default(0)
+  category        String    // e.g., "competition", "participation"
+  createdAt       DateTime  @default(now())
+  
+  recipients      User[]
+}
+
+// Aura Transactions (gamification log)
+model AuraTransaction {
+  id              String    @id @default(uuid())
+  userId          String    // FK to User
+  amount          Int       // positive or negative
+  type            String    // e.g., "match_win", "tournament_participation", "achievement"
+  description     String
+  tournamentId    String?   // FK to Tournament (if applicable)
+  matchId         String?   // FK to Match (if applicable)
+  createdAt       DateTime  @default(now())
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// =====================
+// REPORTS
+// =====================
+model Report {
+  id              String    @id @default(uuid())
+  reporterId      String    // FK to User reporting
+  reportedId      String    // FK to User being reported
+  tournamentId    String?   // FK to Tournament (if applicable)
+  matchId         String?   // FK to Match (if applicable)
+  type            String    // e.g., "stat_manipulation", "harassment"
+  status          String    @default("pending") // pending, reviewed, resolved
+  createdAt       DateTime  @default(now())
+  resolvedAt      DateTime?
+  
+  reporter    User      @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reported    User      @relation(fields: [reportedId], references: [id], onDelete: Cascade)
+}
