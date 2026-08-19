@@ -2,28 +2,19 @@
   "name": "tornuti",
   "version": "0.1.0",
   "private": true,
+  "description": "Tornuti - Plataforma universal de torneos con sistema de gamificación Aura",
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "db:push": "prisma db push",
-    "db:generate": "prisma generate"
+    "dev": "npm run dev --workspace=apps/web",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:api": "npm run start:dev --workspace=apps/api",
+    "build": "npm run build --workspace=apps/web",
+    "db:generate": "npm run db:generate --workspace=apps/api",
+    "db:push": "npm run db:push --workspace=apps/api"
   },
-  "dependencies": {
-    "next": "14.2.4",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "lucide-react": "^0.360.0",
-    "clsx": "^2.1.0",
-    "date-fns": "^3.6.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.5.2",
-    "eslint": "^8",
-    "eslint-config-next": "^14.2.4",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1",
-    "autoprefixer": "^10"
+  "engines": {
+    "node": ">=18"
   }
 }

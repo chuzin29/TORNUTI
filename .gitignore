@@ -3,16 +3,16 @@ node_modules
 
 # Next.js build output
 .next
--out,
-
-# Production
 out/
 
 # Prisma schema
 .prisma/
 
 # Environment variables
-.env*
+.env
+.env.*
+!.env.example
+!.env.example.*
 
 # IDE
 .vscode/
