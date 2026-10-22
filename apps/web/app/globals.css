@@ -4,59 +4,252 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100;
-    --foreground: 0 0% 10;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 10;
-    --popover: 0 0% 100;
-    --popover-foreground: 0 0% 10;
-    --primary: 266 80% 50;
-    --primary-foreground: 0 0% 100;
-    --secondary: 210 40% 97.5;
-    --secondary-foreground: 0 0% 10;
-    --muted: 0 0% 96.1;
-    --muted-foreground: 0 0% 45;
-    --accent: 266 60% 55;
-    --destructive: 0 84% 60;
-    --destructive-foreground: 0 0% 100;
-    --border: 0 0% 89.8;
-    --input: 0 0% 89.8;
-    --radius: 0.5rem;
+    --background: 40 24% 95%;
+    --surface: 42 35% 98%;
+    --elevated: 40 22% 91%;
+    --foreground: 30 15% 10%;
+    --muted: 38 16% 89%;
+    --muted-foreground: 30 8% 36%;
+    --line: 35 14% 79%;
+    --primary: 232 74% 45%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 76 92% 58%;
+    --accent-foreground: 30 15% 10%;
+    --aura: 38 92% 48%;
+    --aura-foreground: 30 15% 10%;
+    --danger: 4 70% 46%;
+    --danger-foreground: 0 0% 100%;
+    --success: 158 64% 30%;
+    --success-foreground: 0 0% 100%;
+    --tone: 232 74% 45%;
+    --tone-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 0 0% 2;
-    --foreground: 0 0% 98;
-    --card: 0 0% 4;
-    --card-foreground: 0 0% 98;
-    --popover: 0 0% 4;
-    --popover-foreground: 0 0% 98;
-    --primary: 266 80% 50;
-    --primary-foreground: 0 0% 100;
-    --secondary: 210 30% 15;
-    --secondary-foreground: 0 0% 85;
-    --muted: 0 0% 15;
-    --muted-foreground: 0 0% 65;
-    --accent: 266 60% 55;
-    --destructive: 0 63% 31;
-    --destructive-foreground: 0 0% 100;
-    --border: 0 0% 18;
-    --input: 0 0% 18;
-    --radius: 0.5rem;
+    --background: 225 22% 8%;
+    --surface: 225 20% 11%;
+    --elevated: 225 18% 15%;
+    --foreground: 42 30% 94%;
+    --muted: 225 14% 18%;
+    --muted-foreground: 225 10% 67%;
+    --line: 225 14% 23%;
+    --primary: 232 90% 70%;
+    --primary-foreground: 225 22% 8%;
+    --accent: 76 80% 60%;
+    --accent-foreground: 225 22% 8%;
+    --aura: 38 95% 58%;
+    --aura-foreground: 225 22% 8%;
+    --danger: 4 80% 62%;
+    --danger-foreground: 225 22% 8%;
+    --success: 158 55% 48%;
+    --success-foreground: 225 22% 8%;
+  }
+
+  * {
+    border-color: hsl(var(--line));
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: "Archivo Variable", Archivo, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-feature-settings: "ss01" on, "cv05" on;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 3px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--line));
+    border: 2px solid hsl(var(--background));
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.6);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .shell {
+    @apply mx-auto w-full max-w-shell px-5 sm:px-8;
+  }
+
+  .display {
+    @apply font-sans font-extrabold tracking-[-0.045em];
+  }
+
+  .eyebrow {
+    @apply text-2xs font-semibold uppercase tracking-[0.14em] text-muted-foreground;
+  }
+
+  .rule {
+    @apply border-t border-line;
+  }
+
+  .grid-lines {
+    background-image:
+      linear-gradient(to right, hsl(var(--line) / 0.55) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--line) / 0.55) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .paper-dots {
+    background-image: radial-gradient(hsl(var(--line) / 0.7) 1px, transparent 1px);
+    background-size: 14px 14px;
+  }
+
+  .focus-ring {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+
+  .field {
+    @apply h-11 w-full rounded-md border border-line bg-surface px-3 text-sm text-foreground placeholder:text-muted-foreground/75 transition-colors hover:border-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .field-label {
+    @apply mb-1.5 block text-[0.8125rem] font-semibold text-foreground;
+  }
+
+  .field-hint {
+    @apply mt-1.5 text-xs leading-relaxed text-muted-foreground;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
 
 @layer utilities {
-  .bg-background {
-    background-color: hsl(var(--background));
+  .tone-deportes {
+    --tone: 232 74% 45%;
+    --tone-foreground: 0 0% 100%;
   }
-  .text-foreground {
-    color: hsl(var(--foreground));
+
+  .dark .tone-deportes {
+    --tone: 232 90% 70%;
+    --tone-foreground: 225 22% 8%;
   }
-  .bg-card {
-    background-color: hsl(var(--card));
+
+  .tone-gaming {
+    --tone: 262 62% 48%;
+    --tone-foreground: 0 0% 100%;
   }
-  .text-card-foreground {
-    color: hsl(var(--card-foreground));
+
+  .dark .tone-gaming {
+    --tone: 262 80% 72%;
+    --tone-foreground: 225 22% 8%;
+  }
+
+  .tone-comunidad {
+    --tone: 14 76% 48%;
+    --tone-foreground: 0 0% 100%;
+  }
+
+  .dark .tone-comunidad {
+    --tone: 16 88% 65%;
+    --tone-foreground: 225 22% 8%;
+  }
+
+  .tone-cultura {
+    --tone: 38 78% 40%;
+    --tone-foreground: 0 0% 100%;
+  }
+
+  .dark .tone-cultura {
+    --tone: 40 90% 62%;
+    --tone-foreground: 225 22% 8%;
+  }
+
+  .tone-empresas {
+    --tone: 183 58% 28%;
+    --tone-foreground: 0 0% 100%;
+  }
+
+  .dark .tone-empresas {
+    --tone: 183 55% 58%;
+    --tone-foreground: 225 22% 8%;
+  }
+
+  .bg-tone {
+    background-color: hsl(var(--tone));
+    color: hsl(var(--tone-foreground));
+  }
+
+  .text-tone {
+    color: hsl(var(--tone));
+  }
+
+  .border-tone {
+    border-color: hsl(var(--tone));
+  }
+
+  .bg-tone-soft {
+    background-color: hsl(var(--tone) / 0.1);
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .text-shadow-none {
+    text-shadow: none;
   }
 }

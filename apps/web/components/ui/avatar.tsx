@@ -1,40 +1,47 @@
-"use client"
+import { cn, initials } from "@/lib/utils"
 
-import { Avatar as RadixAvatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar"
-import { cn } from "@/lib/utils"
+const palettes = [
+  "bg-primary text-primary-foreground",
+  "bg-foreground text-background",
+  "bg-aura text-aura-foreground",
+  "bg-success text-success-foreground",
+  "bg-danger text-danger-foreground",
+]
 
-interface AvatarProps {
-  className?: string
-  size?: "sm" | "md" | "lg"
-  fallback?: string
-  src?: string
+function hash(value: string) {
+  let result = 0
+  for (let index = 0; index < value.length; index += 1) {
+    result = (result * 31 + value.charCodeAt(index)) % 997
+  }
+  return result
 }
 
-export const Avatar = ({ 
-  className, 
-  size = "md", 
-  fallback, 
-  src,
-  ...props 
-}: AvatarProps) => {
-  const sizeMap = {
-    sm: "h-8 w-8",
-    md: "h-10 w-10",
-    lg: "h-12 w-12",
-  }
-
+export function Avatar({
+  name,
+  size = "md",
+  className,
+}: {
+  name: string
+  size?: "xs" | "sm" | "md" | "lg"
+  className?: string
+}) {
+  const palette = palettes[hash(name) % palettes.length]
   return (
-    <RadixAvatar 
+    <span
       className={cn(
-        sizeMap[size],
-        "rounded-full border border-border",
-        className
+        "inline-flex shrink-0 items-center justify-center rounded-full font-bold uppercase",
+        {
+          xs: "h-6 w-6 text-[0.5rem]",
+          sm: "h-8 w-8 text-[0.625rem]",
+          md: "h-10 w-10 text-xs",
+          lg: "h-14 w-14 text-base",
+        }[size],
+        palette,
+        className,
       )}
-      src={src}
-      fallback={fallback}
-      {...props}
-    />
+      aria-hidden="true"
+    >
+      {initials(name)}
+    </span>
   )
 }
-
-Avatar.displayName = "Avatar"

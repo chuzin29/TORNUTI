@@ -1,0 +1,8 @@
+node_modules
+.next
+out
+dist
+coverage
+package-lock.json
+*.tsbuildinfo
+apps/web/public

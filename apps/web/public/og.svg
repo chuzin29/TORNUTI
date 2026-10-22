@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Tornuti: torneos de cualquier cosa, con la cuenta clara">
+  <rect width="1200" height="630" fill="#F7F4ED"/>
+  <g stroke="#D6CFC2" stroke-width="1">
+    <path d="M0 120h1200M0 240h1200M0 360h1200M0 480h1200"/>
+    <path d="M160 0v630M320 0v630M480 0v630M640 0v630M800 0v630M960 0v630M1120 0v630"/>
+  </g>
+
+  <g transform="translate(80 66)">
+    <path d="M0 0v26a10 10 0 0 0 10 10h24" fill="none" stroke="#1D1A15" stroke-width="7" stroke-linecap="round"/>
+    <path d="M0 58V32a10 10 0 0 1 10-10h24" fill="none" stroke="#1D1A15" stroke-width="7" stroke-linecap="round"/>
+    <path d="m56 4 19 25-19 25L37 29 56 4Z" fill="#1B3FD8"/>
+    <circle cx="56" cy="29" r="6" fill="#F7F4ED"/>
+    <text x="88" y="42" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="30" font-weight="800" letter-spacing="1" fill="#1D1A15">TORNUTI</text>
+  </g>
+
+  <text x="80" y="270" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="86" font-weight="800" letter-spacing="-4" fill="#1D1A15">El torneo empieza</text>
+  <text x="80" y="356" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="86" font-weight="800" letter-spacing="-4" fill="#1D1A15">mucho antes</text>
+  <text x="80" y="442" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="86" font-weight="800" letter-spacing="-4" fill="#1D1A15">del pitazo.</text>
+  <rect x="80" y="466" width="288" height="16" fill="#C7F24B"/>
+
+  <text x="80" y="548" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="22" font-weight="500" fill="#6A6258">Inscripciones, cuadros, resultados y Aura.</text>
+  <text x="80" y="582" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="18" font-weight="600" letter-spacing="2" fill="#1B3FD8">GRATIS PARA ORGANIZAR Y JUGAR</text>
+
+  <g transform="translate(760 140)">
+    <rect width="360" height="370" fill="#FDFBF6" stroke="#1D1A15" stroke-width="2"/>
+    <rect x="0" y="0" width="360" height="48" fill="#1D1A15"/>
+    <circle cx="22" cy="24" r="5" fill="#C7F24B"/>
+    <text x="38" y="30" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="1.5" fill="#F7F4ED">COPA CADEJOS 3X3</text>
+    <text x="330" y="30" text-anchor="end" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="600" fill="#C7C2B8">12/16</text>
+
+    <g font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="10" fill="#1D1A15">
+      <text x="24" y="82" font-size="9" font-weight="700" letter-spacing="1.4" fill="#6A6258">CUARTOS</text>
+      <text x="148" y="82" font-size="9" font-weight="700" letter-spacing="1.4" fill="#6A6258">SEMIS</text>
+      <text x="276" y="82" font-size="9" font-weight="700" letter-spacing="1.4" fill="#6A6258">FINAL</text>
+
+      <rect x="22" y="94" width="108" height="46" fill="#FDFBF6" stroke="#D6CFC2"/>
+      <text x="30" y="112" font-weight="600">Las Cadejas</text>
+      <text x="124" y="112" text-anchor="end" font-weight="700">21</text>
+      <line x1="22" y1="120" x2="130" y2="120" stroke="#E7E1D5"/>
+      <text x="30" y="132" fill="#6A6258">Vista Hermosa</text>
+      <text x="124" y="132" text-anchor="end" fill="#6A6258" font-weight="700">18</text>
+
+      <rect x="22" y="152" width="108" height="46" fill="#FDFBF6" stroke="#D6CFC2"/>
+      <text x="30" y="170" font-weight="600">Santa Ana Five</text>
+      <text x="124" y="170" text-anchor="end" font-weight="700">15</text>
+      <line x1="22" y1="178" x2="130" y2="178" stroke="#E7E1D5"/>
+      <text x="30" y="190" fill="#6A6258">Cuscatlán U.</text>
+      <text x="124" y="190" text-anchor="end" fill="#6A6258" font-weight="700">21</text>
+
+      <rect x="148" y="116" width="108" height="46" fill="#FDFBF6" stroke="#1D1A15"/>
+      <text x="154" y="134" font-weight="600">Las Cadejas</text>
+      <text x="248" y="134" text-anchor="end" font-weight="700">12</text>
+      <line x1="148" y1="142" x2="256" y2="142" stroke="#E7E1D5"/>
+      <text x="154" y="154" fill="#6A6258">Cuscatlán U.</text>
+      <text x="248" y="154" text-anchor="end" fill="#6A6258" font-weight="700">9</text>
+
+      <rect x="276" y="116" width="60" height="46" fill="#F1EDE4" stroke="#D6CFC2" stroke-dasharray="4 4"/>
+      <text x="306" y="136" text-anchor="middle" font-size="9" font-weight="700" letter-spacing="0.8" fill="#6A6258">POR</text>
+      <text x="306" y="150" text-anchor="middle" font-size="9" font-weight="700" letter-spacing="0.8" fill="#6A6258">JUGAR</text>
+    </g>
+
+    <line x1="24" y1="230" x2="336" y2="230" stroke="#E7E1D5"/>
+    <text x="24" y="260" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="9" font-weight="700" letter-spacing="1.4" fill="#6A6258">CUPOS</text>
+    <rect x="24" y="270" width="204" height="6" fill="#E7E1D5"/>
+    <rect x="24" y="270" width="153" height="6" fill="#1B3FD8"/>
+    <text x="240" y="277" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="700" fill="#1D1A15">75%</text>
+    <text x="24" y="310" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="9" font-weight="700" letter-spacing="1.4" fill="#6A6258">AURA EN JUEGO</text>
+    <text x="24" y="336" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="24" font-weight="800" fill="#1D1A15">2,400</text>
+    <text x="330" y="336" text-anchor="end" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="9" font-weight="700" letter-spacing="1.2" fill="#6A6258">PARQUE CUSCATLÁN</text>
+  </g>
+</svg>

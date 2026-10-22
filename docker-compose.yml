@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: tornuti-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tornuti
+      POSTGRES_PASSWORD: tornuti
+      POSTGRES_DB: tornuti
+    ports:
+      - "5432:5432"
+    volumes:
+      - tornuti-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tornuti -d tornuti"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  tornuti-db-data:
+    name: tornuti-db-data
