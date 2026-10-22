@@ -1,0 +1,42 @@
+{
+  "name": "tornuti",
+  "version": 2,
+  "projects": {
+    "web": {
+      "build": {
+        "env": {
+          "NEXT_PUBLIC_SUPABASE_URL": "@env:NEXT_PUBLIC_SUPABASE_URL",
+          "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@env:NEXT_PUBLIC_SUPABASE_ANON_KEY",
+          "NEXT_PUBLIC_APP_URL": "@env:NEXT_PUBLIC_APP_URL"
+        }
+      }
+    },
+    "api": {
+      "build": {
+        "env": {
+          "SUPABASE_URL": "@env:SUPABASE_URL",
+          "SUPABASE_SECRET_KEY": "@env:SUPABASE_SECRET_KEY",
+          "DATABASE_URL": "@env:DATABASE_URL",
+          "JWT_SECRET": "@env:JWT_SECRET",
+          "PORT": 3001
+        }
+      }
+    }
+  },
+  "functions": {
+    "apps/api/src/main.ts": {
+      "memory": 2048,
+      "maxDuration": 30
+    }
+  },
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "apps/web/$1"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "apps/api/src/main.ts"
+    }
+  ]
+}

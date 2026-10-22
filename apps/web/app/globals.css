@@ -1,5 +1,6 @@
-/* Configuración de capas para Tailwind */
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer base {
   :root {

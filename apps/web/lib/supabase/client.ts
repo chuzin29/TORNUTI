@@ -1,9 +1,7 @@
 import { createClient } from "@supabase/supabase-js"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://cnizavwjsztosgqwtzas.supabase.co"
-const supabaseAnonKey =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuaXphdndqc3p0b3NncXd0emFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNTQ5MDYsImV4cCI6MjEwMjczMDkwNn0.WxW2CT4QKUg3bC_X7IKo0VVGa1JFpMD-rhXrLsey59s"
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbG...y59s"
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
@@ -29,6 +27,21 @@ export async function signIn(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
+  })
+  if (error) throw error
+  return data
+}
+
+export async function signInWithGoogle() {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/auth/callback`,
+      queryParams: {
+        access_type: "offline",
+        prompt: "consent",
+      },
+    },
   })
   if (error) throw error
   return data

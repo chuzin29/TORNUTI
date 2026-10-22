@@ -30,4 +30,24 @@ out/
 *.log
 
 # Vercel
-.vercel
+.vercel/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Compiled output
+apps/api/dist/
+apps/api/*.js
+apps/api/*.js.map
+apps/*/dist/
+apps/*/*.js
+apps/*/*.js.map
+
+# Impeccable tool artifacts
+.impeccable/
+.opencode/
+
+# Temp
+*.tmp
+*.swp
