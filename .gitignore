@@ -51,3 +51,6 @@ apps/*/*.js.map
 # Temp
 *.tmp
 *.swp
+# Tornuti API (NestJS) - ignored
+apps/api/src/
+apps/api/*.json
