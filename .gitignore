@@ -54,3 +54,6 @@ apps/*/*.js.map
 # Tornuti API (NestJS) - ignored
 apps/api/src/
 apps/api/*.json
+
+# Tornuti API (NestJS) - fully ignored
+apps/api/
