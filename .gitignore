@@ -1,33 +1,55 @@
-# Dependencies
-node_modules
+# Dependencias
+node_modules/
 
-# Next.js build output
-.next
+# Builds
+.next/
 out/
+dist/
+build/
+*.tsbuildinfo
 
-# Prisma schema
+# Prisma
 .prisma/
 
-# Environment variables
+# Cobertura y pruebas de navegador
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# Variables de entorno
 .env
 .env.*
 !.env.example
 !.env.example.*
 
-# IDE
+# Editores
 .vscode/
-.vscode/
-*.code-workspace
 .idea/
 *.swp
 *.swo
 *~
+*.code-workspace
 
-# Turbopack
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Herramientas
 .turbo/
+.vercel/
+.wrangler/
 
 # Logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Vercel
-.vercel
+# Datos locales
+*.sqlite
+*.sqlite3
+*.db
+pgdata/

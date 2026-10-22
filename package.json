@@ -1,20 +1,35 @@
 {
   "name": "tornuti",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
-  "description": "Tornuti - Plataforma universal de torneos con sistema de gamificación Aura",
+  "description": "Tornuti — plataforma universal de torneos con gamificación Aura",
   "workspaces": [
     "apps/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=apps/web",
-    "dev:web": "npm run dev --workspace=apps/web",
-    "dev:api": "npm run start:dev --workspace=apps/api",
-    "build": "npm run build --workspace=apps/web",
-    "db:generate": "npm run db:generate --workspace=apps/api",
-    "db:push": "npm run db:push --workspace=apps/api"
+    "dev": "concurrently -n web,api -c cyan,magenta \"npm run dev:web\" \"npm run dev:api\"",
+    "dev:web": "npm run dev --workspace @tornuti/web",
+    "dev:api": "npm run start:dev --workspace @tornuti/api",
+    "build": "npm run build --workspace @tornuti/web && npm run build --workspace @tornuti/api",
+    "build:web": "npm run build --workspace @tornuti/web",
+    "build:api": "npm run build --workspace @tornuti/api",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "db:generate": "npm run db:generate --workspace @tornuti/api",
+    "db:push": "npm run db:push --workspace @tornuti/api",
+    "db:deploy": "npm run db:deploy --workspace @tornuti/api",
+    "db:reset": "npm run db:reset --workspace @tornuti/api",
+    "db:seed": "npm run db:seed --workspace @tornuti/api",
+    "db:studio": "npm run db:studio --workspace @tornuti/api",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "prettier": "^3.4.2"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   }
 }

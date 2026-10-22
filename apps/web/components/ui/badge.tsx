@@ -1,64 +1,45 @@
-"use client"
-
+import * as React from "react"
 import { cn } from "@/lib/utils"
-import { X } from "lucide-react"
 
-interface BadgeProps {
-  variant?: "default" | "outline" | "pill" | "gradient" | "aura"
-  size?: "sm" | "md" | "lg"
-  className?: string
-  pillIcon?: boolean
-}
+type BadgeVariant = "neutral" | "outline" | "primary" | "live" | "aura" | "tone" | "soft"
 
-export const Badge = ({ 
-  variant = "default", 
-  size = "md", 
-  className, 
+export function Badge({
   children,
-  pillIcon = false
-}: BadgeProps) => {
-  const sizeMap = {
-    sm: "h-6 w-6 text-xs px-2 py-0.5",
-    md: "h-8 w-8 text-sm px-3 py-1",
-    lg: "h-10 w-10 text-base px-4 py-2",
-  }
-
-  const getVariantStyles = () => {
-    switch (variant) {
-      case "default":
-        return `bg-primary text-primary-foreground`
-      case "outline":
-        return `border border-primary text-primary`
-      case "pill":
-        return `rounded-full bg-primary/10 text-primary px-2 py-1 text-xs inline-flex items-center gap-2`
-      case "gradient":
-        return `bg-gradient-to-r from-morado-500 to-salvadoreño-claro-500 text-white`
-      case "aura":
-        return `bg-gradient-to-r from-amber-500 to-orange-500 text-white`
-      default:
-        return `bg-primary text-primary-foreground`
-    }
-  }
-
-  const getSizeClass = sizeMap[size] || sizeMap.md
-
-  // Aura pulse animation for aura variant
-  const auraClass = variant === "aura" ? "animate-pulse-slow" : ""
-
+  variant = "neutral",
+  className,
+  dot = false,
+}: {
+  children: React.ReactNode
+  variant?: BadgeVariant
+  className?: string
+  dot?: boolean
+}) {
   return (
-    <span className={cn(
-      "inline-flex items-center rounded-md",
-      getVariantStyles(),
-      getSizeClass,
-      auraClass,
-      className
-    )}>
-      {children}
-      {pillIcon && (
-        <X className="h-2 w-2 text-xs opacity-80" />
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-2xs font-semibold uppercase tracking-[0.08em]",
+        {
+          neutral: "bg-muted text-muted-foreground",
+          outline: "border border-line text-muted-foreground",
+          primary: "bg-primary/10 text-primary",
+          soft: "bg-elevated text-foreground",
+          live: "bg-success text-success-foreground",
+          aura: "bg-aura/15 text-aura",
+          tone: "bg-tone text-tone-foreground",
+        }[variant],
+        className,
       )}
+    >
+      {dot ? (
+        <span
+          className={cn(
+            "h-1.5 w-1.5 rounded-full",
+            variant === "live" ? "bg-success-foreground" : "bg-current",
+          )}
+          aria-hidden="true"
+        />
+      ) : null}
+      {children}
     </span>
   )
 }
-
-Badge.displayName = "Badge"
