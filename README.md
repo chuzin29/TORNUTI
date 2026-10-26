@@ -201,6 +201,15 @@ Iteración de diseño y de cuentas recién cerrada. Lo que ya quedó resuelto:
 - **Cuentas con Supabase:** entrada por correo y contraseña reales (`signInWithPassword`), alta con la confirmación de correo que exige el panel (con mensaje honesto cuando falta confirmar), cierre de sesión con `signOut`, flujo de Google por `/auth/callback` con aviso amigable mientras el proveedor Google está desactivado en el panel. El esquema completo con RLS vive en `scripts/supabase-schema.sql` y las instrucciones paso a paso en `docs/SUPABASE.md`.
 - **Correcciones de ingeniería:** cierre de formularios duplicados en la cuenta, tipos de sesión e inscripción alineados, `asChild` real en `Button`, tipado de cookies de Supabase, y el HTML del servidor ya no queda vacío detrás de un estado de carga.
 
+## Puesta en producción
+
+El despliegue gratuito a Vercel está paso a paso en
+[`docs/VERCEL.md`](docs/VERCEL.md): importar el repo, `apps/web` como
+raíz, las dos variables públicas de Supabase y el dominio de confianza
+en el panel. Las cuentas reales ya funcionan contra el proyecto
+Supabase; Google queda listo en cuanto actives el proveedor con tu
+cliente OAuth (y su URI de callback sigue siendo la misma en producción).
+
 Los siguientes pasos están en el roadmap: sincronizar todos los listados con la base de datos (el esquema ya está listo para migrar del JSON de demo), edición de torneos desde el panel, notificaciones por correo, doble eliminación, fase de grupos completa y transmisión de marcadores en vivo.
 
 ## Licencia
