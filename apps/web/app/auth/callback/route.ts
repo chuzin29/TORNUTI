@@ -1,57 +1,28 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { copySessionCookies, createServerSession } from "@/lib/supabase/server"
 
-type CookieSetter = { name: string; value: string; options: CookieOptions }[]
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://cnizavwjsztosgqwtzas.supabase.co"
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbG...y59s"
-
+/** Llegada del OAuth de Google (y de confirmaciones de correo que
+ *  `signInWithOAuth` dispara): intercambia el `code` por sesión y regresa
+ *  — hacia `redirectTo` — con las cookies `sb-…` ya colocadas en la
+ *  respuesta. Con el middleware refrescando sesiones, el usuario queda
+ *  firmado también para el servidor. */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get("code")
   const redirectTo = searchParams.get("redirect_to") || "/"
 
-  if (code) {
-    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet: CookieSetter) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            request.cookies.set(name, value)
-          )
-        },
-      },
-    })
+  const { supabase, supabaseResponse } = createServerSession(request)
 
-    await supabase.auth.exchangeCodeForSession(code)
+  if (code) {
+    try {
+      await supabase.auth.exchangeCodeForSession(code)
+    } catch {
+      // Código reusado o expirado: se regresa a la portada sin sesión.
+      return NextResponse.redirect(new URL("/login", request.url))
+    }
   }
 
   const response = NextResponse.redirect(new URL(redirectTo, request.url))
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll()
-      },
-      setAll(cookiesToSet: CookieSetter) {
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options)
-        )
-      },
-    },
-  })
-
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (user) {
-    response.cookies.set("tornuti_user", user.id, {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    })
-  }
-
+  copySessionCookies(supabaseResponse, response)
   return response
 }

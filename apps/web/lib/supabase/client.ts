@@ -1,9 +1,7 @@
 import { createClient } from "@supabase/supabase-js"
+import { SUPABASE_PUBLIC_KEY, SUPABASE_URL } from "@/lib/supabase/keys"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://cnizavwjsztosgqwtzas.supabase.co"
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbG...y59s"
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY)
 
 export async function getSession() {
   const { data, error } = await supabase.auth.getSession()

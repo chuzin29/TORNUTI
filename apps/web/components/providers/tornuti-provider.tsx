@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { getSupabaseClient } from "@/components/providers/supabase-provider"
+import { hasSupabaseCreds } from "@/lib/supabase/keys"
 import type { Tournament } from "@/lib/types"
 import { slugify } from "@/lib/utils"
 
@@ -47,12 +48,10 @@ interface StoreContextValue extends PersistedState {
 
 const STORAGE_KEY = "tornuti_state"
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "")
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 
-/** ¿Hay credenciales públicas de Supabase disponibles para altas y sesiones? */
-function hasSupabase(): boolean {
-  return Boolean(SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-}
+/** ¿Hay credenciales públicas de Supabase disponibles para altas y sesiones?
+ *  Acepta la llave nueva (publishable) y la heredada (anon). */
+const hasSupabase = hasSupabaseCreds
 
 const initialState: PersistedState = {
   session: null,
@@ -99,11 +98,11 @@ function authFriendly(message: string): string {
   if (/email not confirmed/i.test(message)) {
     return "Revisa tu correo: te enviamos un enlace de confirmación. Confírmalo e intenta de nuevo."
   }
-  if (/over.request\.?rate|too many requests/i.test(message)) {
-    return "Demasiados intentos seguidos. Espera un minuto y vuelve a intentar."
+  if (/over[_-]?email[_-]?send[_-]?rate[_-]?limit|over\.request\.?rate|too many requests/i.test(message)) {
+    return "Supabase está limitando el envío de correos de confirmación por hora (plan gratis). Espera un rato o entra con tu contraseña si ya confirmaste."
   }
-  if (/signups? not allowed|user already exists/i.test(message)) {
-    return "Ese correo ya tiene cuenta (falta confirmarla) o las inscripciones están cerradas para ese dominio."
+  if (/signups? not allowed|user already exists|already registered/i.test(message)) {
+    return "Ese correo ya tiene cuenta: entra con tu contraseña, o si nunca la confirmaste pide el enlace de nuevo."
   }
   if (/at least \d+ characters/i.test(message)) {
     return "Usa una contraseña más larga."
@@ -154,6 +153,24 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
       })
       .catch(() => {
         // Sin conexión a Supabase se continúa con el estado local.
+      })
+
+    /* Puente para el OAuth de Google: su sesión vive en cookies httpOnly
+       que el servidor colocó en /auth/callback; el navegador la consulta
+       una vez al montar para alinear el estado local sin duplicar. */
+    fetch("/api/auth/session")
+      .then(async (res) => {
+        if (!res.ok) return
+        const { user } = (await res.json()) as {
+          user: { id: string; email?: string | null } | null
+        }
+        if (!user) return
+        setState((prev) =>
+          prev.session ? prev : { ...prev, session: sessionFromSupabase(user) },
+        )
+      })
+      .catch(() => {
+        // Sin endpoint accesible seguimos con el estado local.
       })
   }, [])
 

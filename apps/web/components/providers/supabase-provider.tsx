@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { createBrowserClient } from "@supabase/ssr"
+import { SUPABASE_PUBLIC_KEY, SUPABASE_URL } from "@/lib/supabase/keys"
 
 let supabaseClient: ReturnType<typeof createBrowserClient> | null = null
 
@@ -11,10 +12,7 @@ let supabaseClient: ReturnType<typeof createBrowserClient> | null = null
  */
 export function getSupabaseClient() {
   if (!supabaseClient) {
-    supabaseClient = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "https://cnizavwjsztosgqwtzas.supabase.co",
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbG...y59s",
-    )
+    supabaseClient = createBrowserClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY)
   }
   return supabaseClient
 }
@@ -26,12 +24,8 @@ export function getSupabaseClient() {
  */
 export async function isGoogleEnabled(): Promise<boolean | null> {
   try {
-    const url =
-      (process.env.NEXT_PUBLIC_SUPABASE_URL ||
-        "https://cnizavwjsztosgqwtzas.supabase.co").replace(/\/+$/, "")
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbG...y59s"
-    const res = await fetch(`${url}/auth/v1/settings`, {
-      headers: { apikey: key },
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/settings`, {
+      headers: { apikey: SUPABASE_PUBLIC_KEY },
     })
     if (!res.ok) return null
     const settings = (await res.json()) as { external?: Record<string, boolean> }

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server"
+import { createServerSession } from "@/lib/supabase/server"
 
 const csp = [
   "default-src 'self'",
@@ -13,9 +14,21 @@ const csp = [
   "frame-ancestors 'none'",
 ].join("; ")
 
-export function middleware(request: NextRequest) {
-  const response = NextResponse.next({ request })
+/** Además del escudo de cabeceras, el middleware mantiene las sesiones
+ *  de Supabase frescas: valida el JWT con `getUser` y deja que el cliente
+ *  de servidor reparta cookies renovadas en la respuesta. */
+export async function middleware(request: NextRequest) {
+  const hasAuthCookies = request.cookies
+    .getAll()
+    .some((c) => c.name.includes("sb-"))
 
+  const { supabase, supabaseResponse } = createServerSession(request)
+  if (hasAuthCookies) {
+    const { data } = await supabase.auth.getUser()
+    void data
+  }
+
+  const response = supabaseResponse
   if (process.env.NODE_ENV === "production") {
     response.headers.set("Content-Security-Policy", csp)
     response.headers.set(
