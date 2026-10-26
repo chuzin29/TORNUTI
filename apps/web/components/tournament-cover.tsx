@@ -1,5 +1,4 @@
 import type * as React from "react"
-import Image from "next/image"
 import type { Category, CoverPattern } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -153,13 +152,12 @@ export function TournamentCover({
       aria-hidden="true"
     >
       {photo ? (
-        <Image
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
           src={photo}
           alt=""
-          fill
-          sizes={sizes}
-          priority={priority}
-          className="absolute inset-0 object-cover"
+          className="absolute inset-0 h-full w-full object-cover"
+          loading={priority ? "eager" : "lazy"}
         />
       ) : (
         <svg
