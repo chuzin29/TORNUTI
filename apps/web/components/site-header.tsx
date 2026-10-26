@@ -82,7 +82,7 @@ export function SiteHeader() {
                 )}
                 aria-label={`Ir a mi panel, ${session.name}`}
               >
-                <Avatar name={session.name} size="sm" />
+                <Avatar name={session.name} src={session.avatar_url} size="sm" />
                 <span className="max-w-28 truncate text-sm font-semibold">{session.name.split(" ")[0]}</span>
                 <span className="flex items-center gap-1 rounded bg-aura/15 px-1.5 py-0.5 text-2xs font-bold tabular text-aura">
                   <AuraMark className="h-3 w-3" />
@@ -147,7 +147,7 @@ export function SiteHeader() {
                   className="mt-2 flex items-center gap-2 text-sm font-semibold"
                   onClick={() => setOpen(false)}
                 >
-                  <Avatar name={session.name} size="sm" />
+                  <Avatar name={session.name} src={session.avatar_url} size="sm" />
                   Panel ({formatNumber(session.aura)})
                 </Link>
                 <Button

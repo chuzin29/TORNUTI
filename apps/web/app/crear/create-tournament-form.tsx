@@ -10,8 +10,10 @@ import { Button } from "@/components/ui/button"
 import { Input, Select, Textarea } from "@/components/ui/input"
 import { useToast } from "@/components/providers/toast-provider"
 import { useTornuti } from "@/components/providers/tornuti-provider"
+import { getSupabaseClient } from "@/components/providers/supabase-provider"
 import { CATEGORIES, FORMATS, TOURNAMENTS } from "@/lib/data"
 import { formatDate } from "@/lib/format"
+import { resizeToWebp } from "@/lib/media"
 import type { Category, CoverPattern, Tournament, TournamentFormat } from "@/lib/types"
 import { cn, formatNumber, slugify } from "@/lib/utils"
 
@@ -48,6 +50,10 @@ export function CreateTournamentForm() {
   const [values, setValues] = React.useState(initial)
   const [errors, setErrors] = React.useState<Errors>({})
   const [submitting, setSubmitting] = React.useState(false)
+  const [coverFile, setCoverFile] = React.useState<File | null>(null)
+  const [coverUrl, setCoverUrl] = React.useState<string | undefined>(undefined)
+  const [uploadingCover, setUploadingCover] = React.useState(false)
+  const coverRef = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
     if (session) {
@@ -61,6 +67,29 @@ export function CreateTournamentForm() {
   const set = <K extends keyof typeof initial>(key: K, value: (typeof initial)[K]) => {
     setValues((current) => ({ ...current, [key]: value }))
     setErrors((current) => ({ ...current, [key]: undefined }))
+  }
+
+  const clearCover = () => {
+    if (coverUrl?.startsWith("blob:")) URL.revokeObjectURL(coverUrl)
+    setCoverFile(null)
+    setCoverUrl(undefined)
+  }
+
+  const pickCover = (file: File) => {
+    if (coverRef.current) coverRef.current.value = ""
+    /* El bucket exige sesión real (RLS de storage): sin cuenta avisamos
+       antes de prometer algo que no se puede cumplir. */
+    if (!session || session.id.startsWith("demo-")) {
+      push({
+        title: "Entra con tu cuenta",
+        description: "La fotografía del lugar se guarda en tu cuenta de Supabase.",
+        tone: "error",
+      })
+      return
+    }
+    clearCover()
+    setCoverFile(file)
+    setCoverUrl(URL.createObjectURL(file))
   }
 
   const preview: Tournament = {
@@ -89,6 +118,7 @@ export function CreateTournamentForm() {
       .filter(Boolean),
     cover: coverByCategory[values.category],
     matches: [],
+    ...(coverUrl ? { cover_url: coverUrl } : {}),
   }
 
   const validate = () => {
@@ -114,7 +144,7 @@ export function CreateTournamentForm() {
     return next
   }
 
-  const submit = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     const next = validate()
     if (Object.keys(next).length > 0) {
@@ -129,10 +159,38 @@ export function CreateTournamentForm() {
     }
 
     setSubmitting(true)
+    /* La foto del lugar: recorte y reescalado local + subida al bucket.
+       Si el bucket falla, el torneo se publica igual con portada base. */
+    let finalCoverUrl: string | undefined
+    if (coverFile && session) {
+      try {
+        const { blob, ext } = await resizeToWebp(coverFile, 1280, 720)
+        const client = getSupabaseClient()
+        const path = `${session.id}/cover-${Date.now()}.${ext}`
+        const { error: uploadError } = await client.storage.from("covers").upload(path, blob, {
+          cacheControl: "300",
+          contentType: ext === "webp" ? "image/webp" : "image/jpeg",
+        })
+        if (uploadError) throw uploadError
+        const { data } = client.storage.from("covers").getPublicUrl(path)
+        finalCoverUrl = data.publicUrl
+      } catch {
+        push({
+          title: "La foto no se pudo subir",
+          description: "El torneo se publica con la portada base; puedes agregar la foto después.",
+          tone: "error",
+        })
+      }
+    }
+    if (coverUrl?.startsWith("blob:")) URL.revokeObjectURL(coverUrl)
+    setCoverFile(null)
+    setCoverUrl(undefined)
+
     const baseSlug = slugify(values.name)
     const taken = [...created, ...TOURNAMENTS].some((item) => item.slug === baseSlug)
     const tournament: Tournament = {
       ...preview,
+      ...(finalCoverUrl ? { cover_url: finalCoverUrl } : {}),
       id: `trn-${Date.now()}`,
       slug: taken ? `${baseSlug}-${Date.now().toString().slice(-4)}` : baseSlug,
       description: values.description.trim(),
@@ -281,6 +339,56 @@ export function CreateTournamentForm() {
           </fieldset>
 
           <fieldset className="mt-10 border-t border-line pt-6">
+            <legend className="text-sm font-bold uppercase tracking-[0.1em]">Foto del lugar</legend>
+            <div className="mt-5 flex flex-wrap items-start gap-5">
+              <div className="h-24 w-40 shrink-0 overflow-hidden border border-line">
+                <TournamentCover
+                  pattern={preview.cover}
+                  category={preview.category}
+                  photo={preview.cover_url}
+                  sizes="200px"
+                  className="h-full w-full"
+                />
+              </div>
+              <div className="min-w-[14rem] flex-1">
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Fotografía de la cancha, sala o lugar donde se juega. Aparece sobre
+                  la portada en las tarjetas de búsqueda y en la ficha del torneo.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={uploadingCover}
+                    onClick={() => coverRef.current?.click()}
+                  >
+                    {coverUrl ? "Cambiar foto" : "Subir foto"}
+                  </Button>
+                  {coverUrl ? (
+                    <Button type="button" variant="ghost" size="sm" onClick={clearCover}>
+                      Quitar foto
+                    </Button>
+                  ) : null}
+                  <input
+                    ref={coverRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0]
+                      if (file) pickCover(file)
+                    }}
+                  />
+                </div>
+                <p className="mt-2 text-2xs text-muted-foreground">
+                  Se recorta a 16:9 y se comprime aquí mismo; 5 MB máximo.
+                </p>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset className="mt-10 border-t border-line pt-6">
             <legend className="text-sm font-bold uppercase tracking-[0.1em]">Cupos, Aura y reglas</legend>
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
               <Input
@@ -358,6 +466,8 @@ export function CreateTournamentForm() {
             <TournamentCover
               pattern={preview.cover}
               category={preview.category}
+              photo={preview.cover_url}
+              sizes="460px"
               className="aspect-[16/9]"
               label={preview.sport}
             />

@@ -18,10 +18,12 @@ function hash(value: string) {
 
 export function Avatar({
   name,
+  src,
   size = "md",
   className,
 }: {
   name: string
+  src?: string
   size?: "xs" | "sm" | "md" | "lg"
   className?: string
 }) {
@@ -29,7 +31,7 @@ export function Avatar({
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-full font-bold uppercase",
+        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-bold uppercase",
         {
           xs: "h-6 w-6 text-[0.5rem]",
           sm: "h-8 w-8 text-[0.625rem]",
@@ -41,7 +43,12 @@ export function Avatar({
       )}
       aria-hidden="true"
     >
-      {initials(name)}
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
+      ) : (
+        initials(name)
+      )}
     </span>
   )
 }

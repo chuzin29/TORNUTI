@@ -131,6 +131,9 @@ export function DashboardView() {
                 <AuraMark className="h-4 w-4 text-aura" />
                 {formatNumber(session.aura)} Aura
               </span>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/perfil">Editar ficha</Link>
+              </Button>
               <Button variant="ghost" size="sm" onClick={logout}>
                 Cerrar sesión
               </Button>
@@ -155,6 +158,8 @@ export function DashboardView() {
                 <TournamentCover
                   pattern={next.tournament!.cover}
                   category={next.tournament!.category}
+                  photo={next.tournament!.cover_url}
+                  sizes="640px"
                   className="h-24"
                   label={next.tournament!.sport}
                 />

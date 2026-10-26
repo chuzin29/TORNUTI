@@ -13,6 +13,8 @@ export interface SessionUser {
   handle: string
   aura: number
   role: "player" | "organizer" | "admin"
+  avatar_url?: string
+  bio?: string
   token?: string
 }
 
@@ -39,6 +41,9 @@ interface StoreContextValue extends PersistedState {
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
   registerAccount: (name: string, email: string, password: string) => Promise<{ ok: boolean; error?: string }>
   logout: () => void
+  editProfile: (
+    patch: { name?: string; bio?: string; avatar_url?: string | null },
+  ) => Promise<{ ok: boolean; error?: string }>
   registerForTournament: (tournament: Tournament, input: { name: string; email: string; team?: string }) => { ok: boolean; error?: string }
   isRegistered: (slug: string) => boolean
   createTournament: (tournament: Tournament) => void
@@ -127,8 +132,32 @@ function sessionFromSupabase(user: { id: string; email?: string | null }): Sessi
     name: pretty,
     email,
     handle: slugify(local),
-    aura: 1240,
+    aura: 0,
     role: "player",
+    ...(meta?.picture ? { avatar_url: meta.picture } : {}),
+  }
+}
+
+type ProfileRow = {
+  full_name: string | null
+  handle: string
+  aura: number
+  avatar_url: string | null
+  bio: string | null
+}
+
+/** Fusiona la ficha pública de `profiles` (nombre, handle, aura, foto y
+ *  bio) sobre la sesión recién creada. Si la fila no existe aún se queda
+ *  con los datos del auth. */
+function enrichSession(session: SessionUser, row: ProfileRow | null): SessionUser {
+  if (!row) return session
+  return {
+    ...session,
+    name: row.full_name?.trim() || session.name,
+    handle: row.handle || session.handle,
+    aura: row.aura,
+    ...(row.avatar_url ? { avatar_url: row.avatar_url } : {}),
+    ...(row.bio ? { bio: row.bio } : {}),
   }
 }
 
@@ -142,14 +171,36 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
     /* Si Supabase ya tiene sesión (p. ej. por Google OAuth puede haber
        regresado por /auth/callback), se detecta al montar. */
     if (!hasSupabase()) return
+    const client = getSupabaseClient()
+
+    /** Adopta la sesión remota (google/cookies) y la completa con la
+     *  ficha real de `profiles` antes de enseñarla en la app. */
+    const adoptSession = async (user: { id: string; email?: string | null }) => {
+      let summary = sessionFromSupabase(user)
+      try {
+        const { data } = await client
+          .from("profiles")
+          .select("full_name, handle, aura, avatar_url, bio")
+          .eq("id", user.id)
+          .single()
+        if (data) summary = enrichSession(summary, data as ProfileRow)
+      } catch {
+        // Perfil aún sin crear: seguimos con los datos del auth.
+      }
+      setState((prev) =>
+        prev.session?.id === summary.id
+          ? { ...prev, session: { ...summary, bio: undefined } }
+          : prev.session
+            ? prev
+            : { ...prev, session: summary },
+      )
+    }
+
     getSupabaseClient()
       .auth.getSession()
       .then(({ data }) => {
         const user = data.session?.user
-        if (!user) return
-        setState((prev) =>
-          prev.session ? prev : { ...prev, session: sessionFromSupabase(user) },
-        )
+        if (user) void adoptSession(user)
       })
       .catch(() => {
         // Sin conexión a Supabase se continúa con el estado local.
@@ -157,21 +208,33 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
 
     /* Puente para el OAuth de Google: su sesión vive en cookies httpOnly
        que el servidor colocó en /auth/callback; el navegador la consulta
-       una vez al montar para alinear el estado local sin duplicar. */
-    fetch("/api/auth/session")
-      .then(async (res) => {
-        if (!res.ok) return
-        const { user } = (await res.json()) as {
-          user: { id: string; email?: string | null } | null
-        }
-        if (!user) return
-        setState((prev) =>
-          prev.session ? prev : { ...prev, session: sessionFromSupabase(user) },
-        )
-      })
-      .catch(() => {
-        // Sin endpoint accesible seguimos con el estado local.
-      })
+       para alinear el estado local sin duplicar. También se re-consulta al
+       regresar a la pestaña, así una ventana abierta desde antes del
+       login se entera de que ya hay sesión firmada. */
+    let lastPoll = 0
+    const pollBridge = () => {
+      const now = Date.now()
+      if (now - lastPoll < 15_000) return
+      lastPoll = now
+      fetch("/api/auth/session")
+        .then(async (res) => {
+          if (!res.ok) return
+          const { user } = (await res.json()) as {
+            user: { id: string; email?: string | null } | null
+          }
+          if (user) void adoptSession(user)
+        })
+        .catch(() => {
+          // Sin endpoint accesible seguimos con el estado local.
+        })
+    }
+    pollBridge()
+    window.addEventListener("focus", pollBridge)
+    document.addEventListener("visibilitychange", pollBridge)
+    return () => {
+      window.removeEventListener("focus", pollBridge)
+      document.removeEventListener("visibilitychange", pollBridge)
+    }
   }, [])
 
   const persist = React.useCallback((next: PersistedState) => {
@@ -237,7 +300,18 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
               error: authFriendly(error?.message ?? "Credenciales no válidas."),
             }
           }
-          persist({ ...state, session: sessionFromSupabase(data.user) })
+          let summary = sessionFromSupabase(data.user)
+          try {
+            const { data: row } = await client
+              .from("profiles")
+              .select("full_name, handle, aura, avatar_url, bio")
+              .eq("id", data.user.id)
+              .single()
+            if (row) summary = enrichSession(summary, row as ProfileRow)
+          } catch {
+            // Ficha pendiente de crear: seguimos con los datos del auth.
+          }
+          persist({ ...state, session: summary })
           return { ok: true }
         } catch {
           return {
@@ -309,7 +383,12 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
           const { data, error } = await client.auth.signUp({
             email: normalized,
             password,
-            options: { data: { full_name: name.trim() } },
+            options: {
+              data: { full_name: name.trim() },
+              /* Al confirmar el correo, el enlace aterriza aquí mismo y
+                 el callback coloca la sesión en lugar de la portada. */
+              emailRedirectTo: `${window.location.origin}/auth/callback`,
+            },
           })
           if (error || !data.user) {
             return {
@@ -320,10 +399,21 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
           if (!data.session) {
             return {
               ok: false,
-              error: `Cuenta creada: confirma tu correo en ${normalized} para activar el acceso.`,
+              error: `Cuenta creada: confirma tu correo en ${normalized} para activar el acceso. Abre el enlace con el mismo navegador donde te registraste.`,
             }
           }
-          persist({ ...state, session: sessionFromSupabase(data.user) })
+          let summary = sessionFromSupabase(data.user)
+          try {
+            const { data: row } = await client
+              .from("profiles")
+              .select("full_name, handle, aura, avatar_url, bio")
+              .eq("id", data.user.id)
+              .single()
+            if (row) summary = enrichSession(summary, row as ProfileRow)
+          } catch {
+            // Ficha pendiente de crear: seguimos con los datos del auth.
+          }
+          persist({ ...state, session: summary })
           return { ok: true }
         } catch {
           return { ok: false, error: "No se pudo crear la cuenta. Intenta de nuevo." }
@@ -405,6 +495,61 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
     [state.joinedTeams]
   )
 
+  /* Edita la ficha del usuario firmado: nombre, bio y foto en `profiles`
+     (RLS: solo su propio id) + metadatos del auth para futuras sesiones. */
+  const editProfile = React.useCallback(
+    async (patch: { name?: string; bio?: string; avatar_url?: string | null }) => {
+      const session = state.session
+      if (!session) return { ok: false, error: "Entra a tu cuenta para editar tu ficha." }
+      if (!hasSupabase() || session.id.startsWith("demo-")) {
+        return { ok: false, error: "Crea tu cuenta con Supabase para tener ficha editable." }
+      }
+      const cleanName = patch.name?.trim()
+      if (cleanName !== undefined && cleanName.length < 2) {
+        return { ok: false, error: "Escribe tu nombre completo (mínimo 2 letras)." }
+      }
+      if (patch.bio !== undefined && patch.bio.length > 240) {
+        return { ok: false, error: "La bio no puede pasar de 240 caracteres." }
+      }
+
+      const client = getSupabaseClient()
+      try {
+        const row: Record<string, string | null> = {}
+        if (cleanName !== undefined) row.full_name = cleanName
+        if (patch.bio !== undefined) row.bio = patch.bio
+        if (patch.avatar_url !== undefined) row.avatar_url = patch.avatar_url
+
+        const { error } = await client.from("profiles").update(row).eq("id", session.id)
+        if (error) return { ok: false, error: authFriendly(error.message) }
+
+        if (cleanName !== undefined) {
+          // Los metadatos alimentan futuras pantallas que lean del auth.
+          try {
+            await client.auth.updateUser({ data: { full_name: cleanName } })
+          } catch {
+            // Los metadatos son un extra: la ficha ya quedó actualizada.
+          }
+        }
+
+        persist({
+          ...state,
+          session: {
+            ...session,
+            ...(cleanName !== undefined ? { name: cleanName } : {}),
+            ...(patch.bio !== undefined ? { bio: patch.bio } : {}),
+            ...(patch.avatar_url !== undefined
+              ? { avatar_url: patch.avatar_url ?? undefined }
+              : {}),
+          },
+        })
+        return { ok: true }
+      } catch {
+        return { ok: false, error: "No se pudo guardar tu ficha. Intenta de nuevo." }
+      }
+    },
+    [persist, state]
+  )
+
   return (
     <StoreContext.Provider
       value={{
@@ -414,6 +559,7 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
         login,
         registerAccount,
         logout,
+        editProfile,
         registerForTournament,
         isRegistered,
         createTournament,

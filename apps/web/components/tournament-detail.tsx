@@ -287,6 +287,8 @@ export function TournamentDetail({ slug }: { slug: string }) {
         <TournamentCover
           pattern={tournament.cover}
           category={tournament.category}
+          photo={tournament.cover_url}
+          priority
           className="h-32 w-full sm:h-40"
           label={tournament.sport}
         />

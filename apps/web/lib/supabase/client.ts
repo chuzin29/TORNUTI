@@ -14,7 +14,8 @@ export async function signUp(email: string, password: string, name: string) {
     email,
     password,
     options: {
-      data: { name },
+      data: { full_name: name },
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
     },
   })
   if (error) throw error

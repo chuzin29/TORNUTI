@@ -67,6 +67,8 @@ export interface Tournament {
   entrants: string[]
   rules: string[]
   cover: CoverPattern
+  /** Foto real del lugar (subida por el organizador) sobre la portada. */
+  cover_url?: string
   matches: Match[]
   featured?: boolean
 }

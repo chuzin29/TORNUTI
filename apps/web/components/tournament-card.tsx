@@ -21,6 +21,8 @@ export function TournamentCard({ tournament }: { tournament: Tournament }) {
         <TournamentCover
           pattern={tournament.cover}
           category={tournament.category}
+          photo={tournament.cover_url}
+          sizes="(min-width: 768px) 33vw, 100vw"
           className="aspect-[16/9] w-full"
           label={tournament.sport}
         />

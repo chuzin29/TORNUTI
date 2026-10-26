@@ -262,6 +262,55 @@ create policy "achievements_public_read" on public.achievements
   for select using (true);
 
 -- ═══════════════════════════════════════════════════════════════════════════
+-- Panel de ficha propia (bio + avatar)
+-- ═══════════════════════════════════════════════════════════════════════════
+
+alter table public.profiles add column if not exists bio text;
+alter table public.profiles add column if not exists avatar_url text;
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'profiles_bio_len') then
+    alter table public.profiles
+      add constraint profiles_bio_len check (bio is null or char_length(bio) <= 240);
+  end if;
+end $$;
+
+-- Bucket de avatares: lectura pública, escritura solo en la carpeta
+-- propia `<uid>/…` (subida y reemplazo). Límite 2 MB y solo imágenes.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('avatars', 'avatars', true, 2097152,
+        array['image/png', 'image/jpeg', 'image/webp'])
+on conflict (id) do update
+  set public = true,
+      file_size_limit = 2097152,
+      allowed_mime_types = array['image/png', 'image/jpeg', 'image/webp'];
+
+drop policy if exists "avatars_public_read" on storage.objects;
+create policy "avatars_public_read" on storage.objects
+  for select using (bucket_id = 'avatars');
+
+drop policy if exists "avatars_owner_insert" on storage.objects;
+create policy "avatars_owner_insert" on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'avatars'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+drop policy if exists "avatars_owner_update" on storage.objects;
+create policy "avatars_owner_update" on storage.objects
+  for update to authenticated
+  using (
+    bucket_id = 'avatars'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  )
+  with check (
+    bucket_id = 'avatars'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+-- ═══════════════════════════════════════════════════════════════════════════
 -- Índices de servicio
 -- ═══════════════════════════════════════════════════════════════════════════
 

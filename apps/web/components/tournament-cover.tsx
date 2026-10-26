@@ -1,4 +1,5 @@
 import type * as React from "react"
+import Image from "next/image"
 import type { Category, CoverPattern } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -127,11 +128,18 @@ const art: Record<CoverPattern, React.ReactNode> = {
 export function TournamentCover({
   pattern,
   category,
+  photo,
+  sizes = "100vw",
+  priority = false,
   className,
   label,
 }: {
   pattern: CoverPattern
   category: Category
+  /** Foto real del lugar: cubre la portada por arriba del arte. */
+  photo?: string
+  sizes?: string
+  priority?: boolean
   className?: string
   label?: string
 }) {
@@ -144,15 +152,27 @@ export function TournamentCover({
       )}
       aria-hidden="true"
     >
-      <svg
-        viewBox="0 0 400 225"
-        className="absolute inset-0 h-full w-full"
-        fill="none"
-        preserveAspectRatio="xMidYMid slice"
-      >
-        {art[pattern]}
-      </svg>
+      {photo ? (
+        <Image
+          src={photo}
+          alt=""
+          fill
+          sizes={sizes}
+          priority={priority}
+          className="absolute inset-0 object-cover"
+        />
+      ) : (
+        <svg
+          viewBox="0 0 400 225"
+          className="absolute inset-0 h-full w-full"
+          fill="none"
+          preserveAspectRatio="xMidYMid slice"
+        >
+          {art[pattern]}
+        </svg>
+      )}
       <div className="absolute inset-0 bg-[linear-gradient(115deg,transparent_55%,hsl(var(--tone))_55.2%)] opacity-35" />
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-[linear-gradient(to_top,hsl(var(--tone))_0%,transparent_70%)] opacity-40" />
       {label ? (
         <span className="absolute bottom-3 right-3.5 text-2xs font-bold uppercase tracking-[0.18em] opacity-70">
           {label}
