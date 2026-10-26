@@ -60,9 +60,11 @@ create table if not exists public.registrations (
   team_id         uuid references public.teams (id) on delete set null,
   name            text not null,
   email           text not null,
-  created_at      timestamptz not null default now(),
-  unique (tournament_id, lower(email))
+  created_at      timestamptz not null default now()
 );
+-- Una inscripción por torneo y correo (expresión → índice único, no constraint)
+create unique index if not exists registrations_tournament_email
+  on public.registrations (tournament_id, lower(email));
 
 -- ── Partidos del cuadro ────────────────────────────────────────────────────
 create table if not exists public.matches (
