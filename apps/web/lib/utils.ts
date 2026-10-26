@@ -1,15 +1,9 @@
-<<<<<<< HEAD
 import { type ClassValue, clsx } from "clsx"
-=======
-import { clsx, type ClassValue } from "clsx"
->>>>>>> origin/main
 import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
-<<<<<<< HEAD
-=======
 
 export function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
@@ -37,4 +31,3 @@ export function initials(name: string) {
 export function formatNumber(value: number) {
   return new Intl.NumberFormat("es-SV").format(value)
 }
->>>>>>> origin/main

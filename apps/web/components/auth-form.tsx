@@ -9,10 +9,10 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/providers/toast-provider"
 import { useTornuti } from "@/components/providers/tornuti-provider"
 import { cn } from "@/lib/utils"
-<<<<<<< HEAD
-import { Loader2, Google, Mail, Lock, Eye, EyeOff } from "lucide-react"
-=======
->>>>>>> origin/main
+
+
+
+
 
 type Mode = "login" | "register"
 
@@ -30,7 +30,7 @@ export function AuthForm({ mode, redirectTo }: { mode: Mode; redirectTo?: string
 
   const isRegister = mode === "register"
 
-<<<<<<< HEAD
+
   const handleGoogle = async () => {
     setError("")
     try {
@@ -50,8 +50,8 @@ export function AuthForm({ mode, redirectTo }: { mode: Mode; redirectTo?: string
     }
   }
 
-=======
->>>>>>> origin/main
+
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     setError("")
@@ -146,7 +146,7 @@ export function AuthForm({ mode, redirectTo }: { mode: Mode; redirectTo?: string
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
             {isRegister
-<<<<<<< HEAD
+
               ? "Tarda menos que llenar u"
               : "Accede con correo, contraseña o Google."}
             <span className="font-semibold"> {isRegister ? "Llena tus datos para empezar." : "Tu cuenta te da acceso a torneos, equipos y Aura."}</span>
@@ -236,8 +236,7 @@ export function AuthForm({ mode, redirectTo }: { mode: Mode; redirectTo?: string
           </p>
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
-            Demo: en modo demostración los datos se guardan en este navegador.
-=======
+            {isRegister
               ? "Tarda menos que llenar una planilla. Puedes empezar como jugador y publicar torneos cuando quieras."
               : "Continúa con las inscripciones, tus equipos y tu historial de Aura."}
           </p>
@@ -358,7 +357,7 @@ export function AuthForm({ mode, redirectTo }: { mode: Mode; redirectTo?: string
               política de privacidad
             </Link>
             . No pedimos datos de pago.
->>>>>>> origin/main
+
           </p>
         </div>
       </section>

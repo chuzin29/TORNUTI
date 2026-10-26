@@ -23,11 +23,11 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     const client = getSupabaseClient()
     setSupabase(client)
 
-    if (!window.__SUPABASE_CLIENT__) {
-      window.__SUPABASE_CLIENT__ = client
+    if (! (window as any).__SUPABASE_CLIENT__) {
+       (window as any).__SUPABASE_CLIENT__ = client
     }
 
-    const { data: authListener } = client.auth.onAuthStateChange(async (event, session) => {
+    const { data: authListener } = client.auth.onAuthStateChange(async (event: any, session: any) => {
       if (event === "SIGNED_IN" && session) {
         // User signed in via Google - redirect to dashboard if needed
       }

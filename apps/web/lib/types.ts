@@ -86,3 +86,29 @@ export interface CategoryInfo {
   blurb: string
   count: number
 }
+
+export interface SessionUser {
+  id: string
+  email: string
+  name: string
+  avatar_url?: string
+  role: "admin" | "organizer" | "player"
+  created_at: string
+}
+
+export interface Registration {
+  id: string
+  tournament_id: string
+  player_id: string
+  team_id: string
+  role: "admin" | "player"
+  status: "pendiente" | "confirmado" | "cancelado"
+  currency: string
+  amount: number
+  aura_unlocked: number
+  total_paid: number
+  instrument_type: string
+  instrument_model: string
+  payment_status: "pendiente" | "pagado"
+  created_at: string
+}

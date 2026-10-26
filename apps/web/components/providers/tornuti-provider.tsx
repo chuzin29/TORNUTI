@@ -1,11 +1,7 @@
 "use client"
 
 import * as React from "react"
-<<<<<<< HEAD
 import type { SessionUser, Registration, Tournament } from "@/lib/types"
-=======
-import type { Tournament } from "@/lib/types"
->>>>>>> origin/main
 import { slugify } from "@/lib/utils"
 
 export interface SessionUser {
@@ -39,33 +35,16 @@ interface StoreContextValue extends PersistedState {
   ready: boolean
   isDemo: boolean
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
-<<<<<<< HEAD
   registerAccount: (name: string, email: string, password: string) => Promise<{ ok: boolean; error?: string }>
   logout: () => void
   registerForTournament: (tournament: Tournament, input: { name: string; email: string; team?: string }) => { ok: boolean; error?: string }
-=======
-  registerAccount: (
-    name: string,
-    email: string,
-    password: string,
-  ) => Promise<{ ok: boolean; error?: string }>
-  logout: () => void
-  registerForTournament: (
-    tournament: Tournament,
-    input: { name: string; email: string; team?: string },
-  ) => { ok: boolean; error?: string }
->>>>>>> origin/main
   isRegistered: (slug: string) => boolean
   createTournament: (tournament: Tournament) => void
   joinTeam: (slug: string) => void
   hasJoinedTeam: (slug: string) => boolean
 }
 
-<<<<<<< HEAD
 const STORAGE_KEY = "tornuti_state"
-=======
-const STORAGE_KEY = "tornuti:store:v1"
->>>>>>> origin/main
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "")
 
 const initialState: PersistedState = {
@@ -119,11 +98,7 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
     } catch {
-<<<<<<< HEAD
       // Storage can be unavailable in private mode
-=======
-      // Storage can be unavailable in private mode; the session stays in memory.
->>>>>>> origin/main
     }
   }, [])
 
@@ -174,11 +149,7 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
       persist({ ...state, session: demoUser(name, normalized) })
       return { ok: true }
     },
-<<<<<<< HEAD
     [persist, state]
-=======
-    [persist, state],
->>>>>>> origin/main
   )
 
   const registerAccount = React.useCallback(
@@ -210,25 +181,16 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
             ...state,
             session: {
               id: data.user.id,
-<<<<<<< HEAD
               name: data.user.name ?? normalized.split("@")[0],
               email: data.user.email,
               handle: data.user.handle ?? slugify(normalized.split("@")[0]),
               aura: 1240,
               role: "player",
-=======
-              name: data.user.name ?? name.trim(),
-              email: data.user.email,
-              handle: data.user.handle ?? slugify(name),
-              aura: data.user.aura,
-              role: data.user.role.toLowerCase() as SessionUser["role"],
->>>>>>> origin/main
               token: data.token,
             },
           })
           return { ok: true }
         } catch {
-<<<<<<< HEAD
           return { ok: false, error: "No se pudo contactar la API." }
         }
       }
@@ -258,40 +220,10 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
         name: input.name,
         email: input.email,
         team: input.team,
-=======
-          return { ok: false, error: "No se pudo contactar la API. Intenta de nuevo." }
-        }
-      }
-
-      persist({ ...state, session: demoUser(name.trim(), normalized) })
-      return { ok: true }
-    },
-    [persist, state],
-  )
-
-  const logout = React.useCallback(() => {
-    persist({ ...state, session: null })
-  }, [persist, state])
-
-  const registerForTournament = React.useCallback(
-    (tournament: Tournament, input: { name: string; email: string; team?: string }) => {
-      if (!input.name.trim()) return { ok: false, error: "Escribe el nombre del equipo o jugador." }
-      if (state.registrations.some((entry) => entry.tournamentSlug === tournament.slug)) {
-        return { ok: false, error: "Ya tienes una inscripción en este torneo." }
-      }
-      const registration: Registration = {
-        id: `reg-${Date.now()}`,
-        tournamentSlug: tournament.slug,
-        tournamentName: tournament.name,
-        name: input.name.trim(),
-        email: input.email.trim() || state.session?.email || "",
-        team: input.team?.trim() || undefined,
->>>>>>> origin/main
         createdAt: new Date().toISOString(),
       }
       persist({
         ...state,
-<<<<<<< HEAD
         registrations: [...state.registrations, reg],
       })
       return { ok: true }
@@ -303,59 +235,31 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
     (slug: string) =>
       state.registrations.some((r) => r.tournamentSlug === slug),
     [state.registrations]
-=======
-        registrations: [registration, ...state.registrations],
-        session: state.session
-          ? { ...state.session, aura: state.session.aura + 40 }
-          : state.session,
-      })
-      return { ok: true }
-    },
-    [persist, state],
-  )
-
-  const isRegistered = React.useCallback(
-    (slug: string) => state.registrations.some((entry) => entry.tournamentSlug === slug),
-    [state.registrations],
->>>>>>> origin/main
   )
 
   const createTournament = React.useCallback(
     (tournament: Tournament) => {
-<<<<<<< HEAD
       persist({
         ...state,
         created: [...state.created, tournament],
       })
     },
     [persist, state]
-=======
-      persist({ ...state, created: [tournament, ...state.created] })
-    },
-    [persist, state],
->>>>>>> origin/main
   )
 
   const joinTeam = React.useCallback(
     (slug: string) => {
       if (state.joinedTeams.includes(slug)) return
-<<<<<<< HEAD
       persist({
         ...state,
         joinedTeams: [...state.joinedTeams, slug],
       })
     },
     [persist, state]
-=======
-      persist({ ...state, joinedTeams: [...state.joinedTeams, slug] })
-    },
-    [persist, state],
->>>>>>> origin/main
   )
 
   const hasJoinedTeam = React.useCallback(
     (slug: string) => state.joinedTeams.includes(slug),
-<<<<<<< HEAD
     [state.joinedTeams]
   )
 
@@ -381,52 +285,7 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useTornuti(): StoreContextValue {
-=======
-    [state.joinedTeams],
-  )
-
-  const value = React.useMemo<StoreContextValue>(
-    () => ({
-      ...state,
-      ready,
-      isDemo: !API_URL,
-      login,
-      registerAccount,
-      logout,
-      registerForTournament,
-      isRegistered,
-      createTournament,
-      joinTeam,
-      hasJoinedTeam,
-    }),
-    [
-      state,
-      ready,
-      login,
-      registerAccount,
-      logout,
-      registerForTournament,
-      isRegistered,
-      createTournament,
-      joinTeam,
-      hasJoinedTeam,
-    ],
-  )
-
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
-}
-
-export function useTornuti() {
->>>>>>> origin/main
   const context = React.useContext(StoreContext)
   if (!context) throw new Error("useTornuti debe usarse dentro de TornutiProvider")
   return context
 }
-<<<<<<< HEAD
-=======
-
-export function useAllTournaments() {
-  const { created } = useTornuti()
-  return React.useMemo(() => created, [created])
-}
->>>>>>> origin/main

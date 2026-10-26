@@ -2,8 +2,8 @@
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { Loader2, Zap, Trophy, Target, Users, Chart } from "lucide-react"
-import { Google } from "lucide-react"
+
+
 function IconTrophy({ className = "", size = 24 }: { className?: string; size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
