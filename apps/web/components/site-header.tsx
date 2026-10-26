@@ -29,7 +29,7 @@ export function SiteHeader() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
 
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-background/95">
+    <header className="sticky top-0 z-50 border-b border-line bg-background/72 backdrop-blur-xl backdrop-saturate-150">
       <div className="border-b border-line/70 bg-foreground text-background">
         <div className="shell flex h-8 items-center justify-between gap-4 text-2xs font-medium tracking-[0.04em]">
           <p className="truncate">

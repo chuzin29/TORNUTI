@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import type { SessionUser, Registration, Tournament } from "@/lib/types"
+import { getSupabaseClient } from "@/components/providers/supabase-provider"
+import type { Tournament } from "@/lib/types"
 import { slugify } from "@/lib/utils"
 
 export interface SessionUser {
@@ -46,6 +47,12 @@ interface StoreContextValue extends PersistedState {
 
 const STORAGE_KEY = "tornuti_state"
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "")
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+
+/** ¿Hay credenciales públicas de Supabase disponibles para altas y sesiones? */
+function hasSupabase(): boolean {
+  return Boolean(SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+}
 
 const initialState: PersistedState = {
   session: null,
@@ -84,6 +91,48 @@ function demoUser(name: string, email: string): SessionUser {
   }
 }
 
+/** Traduce los errores habituales de Supabase a mensajes claros en español. */
+function authFriendly(message: string): string {
+  if (/invalid login credentials/i.test(message)) {
+    return "Correo o contraseña incorrectos."
+  }
+  if (/email not confirmed/i.test(message)) {
+    return "Revisa tu correo: te enviamos un enlace de confirmación. Confírmalo e intenta de nuevo."
+  }
+  if (/over.request\.?rate|too many requests/i.test(message)) {
+    return "Demasiados intentos seguidos. Espera un minuto y vuelve a intentar."
+  }
+  if (/signups? not allowed|user already exists/i.test(message)) {
+    return "Ese correo ya tiene cuenta (falta confirmarla) o las inscripciones están cerradas para ese dominio."
+  }
+  if (/at least \d+ characters/i.test(message)) {
+    return "Usa una contraseña más larga."
+  }
+  return "No se pudieron validar tus datos con el servicio de cuentas. Intenta de nuevo."
+}
+
+/** Mapea un usuario de Supabase a la sesión del proveedor. */
+function sessionFromSupabase(user: { id: string; email?: string | null }): SessionUser {
+  const email = user.email ?? ""
+  const local = email.split("@")[0] ?? "jugador"
+  const meta = (user as unknown as { user_metadata?: Record<string, string | undefined> })
+    .user_metadata
+  const pretty =
+    meta?.full_name ||
+    meta?.name ||
+    local
+      .replace(/[._-]+/g, " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase())
+  return {
+    id: user.id,
+    name: pretty,
+    email,
+    handle: slugify(local),
+    aura: 1240,
+    role: "player",
+  }
+}
+
 export function TornutiProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = React.useState<PersistedState>(initialState)
   const [ready, setReady] = React.useState(false)
@@ -91,6 +140,21 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     setState(readState())
     setReady(true)
+    /* Si Supabase ya tiene sesión (p. ej. por Google OAuth puede haber
+       regresado por /auth/callback), se detecta al montar. */
+    if (!hasSupabase()) return
+    getSupabaseClient()
+      .auth.getSession()
+      .then(({ data }) => {
+        const user = data.session?.user
+        if (!user) return
+        setState((prev) =>
+          prev.session ? prev : { ...prev, session: sessionFromSupabase(user) },
+        )
+      })
+      .catch(() => {
+        // Sin conexión a Supabase se continúa con el estado local.
+      })
   }, [])
 
   const persist = React.useCallback((next: PersistedState) => {
@@ -139,6 +203,30 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
           return { ok: true }
         } catch {
           return { ok: false, error: "No se pudo contactar la API. Intenta de nuevo." }
+        }
+      }
+
+      /* Supabase: autenticación real por correo y contraseña. */
+      if (hasSupabase()) {
+        try {
+          const client = getSupabaseClient()
+          const { data, error } = await client.auth.signInWithPassword({
+            email: normalized,
+            password,
+          })
+          if (error || !data.user) {
+            return {
+              ok: false,
+              error: authFriendly(error?.message ?? "Credenciales no válidas."),
+            }
+          }
+          persist({ ...state, session: sessionFromSupabase(data.user) })
+          return { ok: true }
+        } catch {
+          return {
+            ok: false,
+            error: "No se pudo contactar el servicio de cuentas. Intenta de nuevo.",
+          }
         }
       }
 
@@ -195,6 +283,36 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      /* Supabase: alta real. El proyecto exige confirmación por correo: si
+         el panel de Supabase apaga el autoconfirm, `data.session` llega
+         nulo y se pide revisar el correo en lugar de fingir acceso. */
+      if (hasSupabase()) {
+        try {
+          const client = getSupabaseClient()
+          const { data, error } = await client.auth.signUp({
+            email: normalized,
+            password,
+            options: { data: { full_name: name.trim() } },
+          })
+          if (error || !data.user) {
+            return {
+              ok: false,
+              error: authFriendly(error?.message ?? "No se pudo crear la cuenta."),
+            }
+          }
+          if (!data.session) {
+            return {
+              ok: false,
+              error: `Cuenta creada: confirma tu correo en ${normalized} para activar el acceso.`,
+            }
+          }
+          persist({ ...state, session: sessionFromSupabase(data.user) })
+          return { ok: true }
+        } catch {
+          return { ok: false, error: "No se pudo crear la cuenta. Intenta de nuevo." }
+        }
+      }
+
       persist({
         ...state,
         session: demoUser(name, normalized),
@@ -206,6 +324,13 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
 
   const logout = React.useCallback(() => {
     persist({ ...initialState, session: null })
+    if (hasSupabase()) {
+      void getSupabaseClient()
+        .auth.signOut()
+        .catch(() => {
+          // Si el servicio no responde, la session local ya se cerró.
+        })
+    }
   }, [persist])
 
   const registerForTournament = React.useCallback(

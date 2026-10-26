@@ -1,255 +1,485 @@
-"use client";
+"use client"
 
-import { useEffect, useRef } from "react";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { useEffect, useRef } from "react"
+import Link from "next/link"
+import { cn, clamp } from "@/lib/utils"
+import { sstep } from "@/lib/stretch-math"
+import { publishGrip } from "@/lib/grip-bus"
 
-type Props = {
-  children: React.ReactNode;
-  label?: string;
-  href: string;
-  onClick?: () => void;
-  className?: string;
-  style?: React.CSSProperties;
-  type?: "button" | "submit";
-  disabled?: boolean;
-  strands?: number;
-  anchor?: { x: number; y: number };
-  maxStretch?: number;
-  isLoading?: boolean;
-};
+/**
+ * StretchyButton: el botón insignia de Tornuti.
+ *
+ * Estilo: píldora con bisel (brillo superior, borde interno, caída inferior)
+ * que funciona sobre papel claro y tinta oscura sin perder contraste.
+ *
+ * Comportamiento simbionte: dentro de su radio de alcance —invisible— suelta
+ * una masa viscosa: un núcleo baboso con halo y una punta gelatinosa que
+ * persigue al puntero con inercia y rebote, rodeada de pelos finos. El botón
+ * se inclina hacia la masa y se comprime al presionar. Fuera del radio todo
+ * descansa y el bucle se apaga; con `prefers-reduced-motion` no hay simbiosis.
+ *
+ * El guante del cursor (`CustomCursor`) reacciona al atributo `data-grip`.
+ */
+
+type Variant = "ink" | "accent" | "aura" | "outline"
+type Size = "md" | "lg"
+
+const SIZES: Record<Size, { padX: number; padY: number; font: number }> = {
+  md: { padX: 27, padY: 13, font: 15.5 },
+  lg: { padX: 33, padY: 16, font: 17.5 },
+}
+
+export interface StretchyButtonProps {
+  children?: React.ReactNode
+  label?: string
+  /** Con `href` renderiza un <Link>; sin `href`, un <button>. */
+  href?: string
+  onClick?: () => void
+  variant?: Variant
+  size?: Size
+  className?: string
+  style?: React.CSSProperties
+  type?: "button" | "submit"
+  disabled?: boolean
+  isLoading?: boolean
+  /** Radio de alcance en píxeles (no se dibuja). */
+  radius?: number
+}
 
 export default function StretchyButton({
   children,
-  label = "let's collaborate",
+  label,
   href,
   onClick,
+  variant = "ink",
+  size = "md",
   className,
   style,
   type = "button",
   disabled = false,
-  strands = 14,
-  anchor = { x: -110, y: 130 },
-  maxStretch = 160,
   isLoading = false,
-}: Props) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const btnRef = useRef<HTMLButtonElement>(null);
-  const pathRefs = useRef<(SVGPathElement | null)[]>([]);
-  const onClickRef = useRef(onClick);
-  onClickRef.current = onClick;
+  radius = 150,
+}: StretchyButtonProps) {
+  const wrapRef = useRef<HTMLSpanElement>(null)
+  const btnRef = useRef<HTMLElement>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
+  const bodyRef = useRef<SVGPathElement>(null)
+  const spillRef = useRef<SVGPathElement>(null)
+  const blobRef = useRef<SVGEllipseElement>(null)
+  const onClickRef = useRef(onClick)
+  onClickRef.current = onClick
+
+  const shown = disabled || isLoading
 
   useEffect(() => {
-    const btn = btnRef.current!;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const wrap = wrapRef.current
+    const btn = btnRef.current
+    const svg = svgRef.current
+    if (!wrap || !btn || !svg) return
 
-    let x = 0, y = 0, vx = 0, vy = 0;
-    let raf = 0;
-    let last = performance.now();
-    const drag = { active: false, sx: 0, sy: 0, dx: 0, dy: 0, moved: 0 };
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches
+    if (reduce || !finePointer) return
 
-    const seeds = Array.from({ length: strands }, (_, i) => Math.sin(i * 12.9898));
+    const R = radius
+    const TILT = 9
+    const SHIFT = 7
+    const GOO_STIFF = 46
+    const GOO_DAMP = 0.82
+
+    const pt = { x: -9999, y: -9999, active: false }
+    let w = 0
+    let h = 0
+    let margin = 0
+    let rect = wrap.getBoundingClientRect() as DOMRect | null
+    let rectDirty = false
+    let raf = 0
+    let last = performance.now()
+    let t = 0
+
+    let es = 0
+    let sx = 0
+    let sy = 0
+    let tilt = 0
+    let press = 0
+    let tipX = 0
+    let tipY = 0
+    let tipVX = 0
+    let tipVY = 0
+
+    const measure = () => {
+      w = btn.offsetWidth
+      h = btn.offsetHeight
+      margin = R + 30
+      const W = w + margin * 2
+      const H = h + margin * 2
+      svg.style.left = `${-margin}px`
+      svg.style.top = `${-margin}px`
+      svg.style.width = `${W}px`
+      svg.style.height = `${H}px`
+      svg.setAttribute("viewBox", `0 0 ${W} ${H}`)
+      rect = wrap.getBoundingClientRect()
+      rectDirty = false
+    }
+
+    const resetInk = () => {
+      btn.style.transform = ""
+      btn.style.filter = "none"
+      bodyRef.current?.setAttribute("d", "")
+      spillRef.current?.setAttribute("d", "")
+      blobRef.current?.setAttribute("rx", "0")
+      blobRef.current?.setAttribute("ry", "0")
+    }
+
+    const settle = () => {
+      raf = 0
+      es = 0
+      sx = sy = tilt = press = 0
+      tipVX = tipVY = 0
+      resetInk()
+    }
 
     const tick = (now: number) => {
-      const dt = Math.min((now - last) / 1000, 1 / 30);
-      last = now;
+      const dt = clamp((now - last) / 1000, 1 / 240, 1 / 30)
+      last = now
+      t += dt * 1000
 
-      let tx = 0, ty = 0;
-      if (drag.active) {
-        const len = Math.hypot(drag.dx, drag.dy);
-        const s = len > 0 ? (maxStretch * Math.tanh(len / maxStretch)) / len : 0;
-        tx = drag.dx * s;
-        ty = drag.dy * s;
+      if (rectDirty || !rect) rect = wrap.getBoundingClientRect()
+      const px = rect ? pt.x - rect.left : -9999
+      const py = rect ? pt.y - rect.top : -9999
+      const cx = w / 2
+      const cy = h / 2
+
+      /* Distancia al borde de la píldora (cápsula). */
+      const qx = clamp(px, h / 2, w - h / 2)
+      const qy = clamp(py, h / 2, h - h / 2)
+      const dEdge = Math.max(0, Math.hypot(px - qx, py - qy) - h / 2)
+
+      const ddx = px - cx
+      const ddy = py - cy
+      const dl = Math.hypot(ddx, ddy) || 1
+      const ux = ddx / dl
+      const uy = ddy / dl
+
+      const e = pt.active ? clamp((R - dEdge) / (R * 0.62), 0, 1) : 0
+      es += (sstep(e) - es) * 0.16
+      if (e === 0 && es < 0.004) {
+        settle()
+        return
       }
 
-      const k = drag.active ? 420 : 170;
-      const c = drag.active ? 30 : 11;
-      vx += ((tx - x) * k - vx * c) * dt;
-      vy += ((ty - y) * k - vy * c) * dt;
-      x += vx * dt;
-      y += vy * dt;
+      const engaged = es > 0.002
+      const ramp = clamp(es * 1.4, 0, 1)
 
-      const speed = Math.hypot(vx, vy);
-      const w = btn.offsetWidth;
-      const h = btn.offsetHeight;
+      /* Majar el cuerpo: inclinación y desplazamiento hacia la masa. */
+      const rx = qx - cx + ux * (h / 2 - 4)
+      const ry = uy * (h / 2 - 4)
+      const torque = rx * uy - ry * ux
+      const tiltT = clamp((torque / (w * 0.5)) * TILT, -TILT, TILT) * es
+      const sxT = ux * SHIFT * es
+      const syT = uy * SHIFT * es
+      press += ((btn.hasAttribute("data-pressed") ? 1 : 0) - press) * 0.22
 
-      const rot = Math.max(-28, Math.min(28, x * 0.12 + vx * 0.015));
-      const blur = reduce ? 0 : Math.min(speed / 120, 5);
-      btn.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${rot}deg)`;
-      btn.style.filter = blur > 0.15 ? `blur(${blur.toFixed(2)}px)` : "none";
+      sx += (sxT - sx) * 0.12
+      sy += (syT - sy) * 0.12
+      tilt += (tiltT - tilt) * 0.12
 
-      const cx = w / 2;
-      const cy = h / 2;
-      const ax = cx + anchor.x;
-      const ay = cy + anchor.y;
+      /* Difuminación muy liviana: solo como estela en movimiento rápido y
+         con tope corto para que el botón siempre se lea con nitidez. */
+      const move = Math.hypot(sxT - sx, syT - sy) + Math.abs(tiltT - tilt) * 2
+      const blur = move > 0.55 ? Math.min(move * 0.22, 0.65) : 0
 
-      const ox = -w * 0.28;
-      const oy = h * 0.45;
-      const rad = (rot * Math.PI) / 180;
-      const cos = Math.cos(rad);
-      const sin = Math.sin(rad);
-      const bx = cx + x + ox * cos - oy * sin;
-      const by = cy + y + ox * sin + oy * cos;
+      btn.style.transform =
+        `translate(${sx.toFixed(2)}px, ${sy.toFixed(2)}px) ` +
+        `rotate(${tilt.toFixed(2)}deg) ` +
+        `scale(${(1 - 0.04 * press).toFixed(3)}, ${(1 - 0.06 * press).toFixed(3)})`
+      btn.style.filter = blur > 0.35 ? `blur(${blur.toFixed(2)}px)` : "none"
 
-      const restLen = Math.hypot(cx + ox - ax, cy + oy - ay);
-      const dx = bx - ax;
-      const dy = by - ay;
-      const len = Math.hypot(dx, dy) || 1;
-      const nx = -dy / len;
-      const ny = dx / len;
-      const slack = Math.max(0, restLen - len);
-      const stretch = Math.max(0, len / restLen - 1);
+      /* Punta babosa: resorte con inercia y rebote gelatinoso. */
+      if (engaged) {
+        const reach = Math.min(1, es * 1.2)
+        const targetX = cx + ddx * reach
+        const targetY = cy + ddy * reach
+        tipVX += (targetX - tipX) * GOO_STIFF * dt
+        tipVY += (targetY - tipY) * GOO_STIFF * dt
+        const damp = Math.pow(GOO_DAMP, dt * 60)
+        tipVX *= damp
+        tipVY *= damp
+        tipX += tipVX
+        tipY += tipVY
+      } else {
+        tipVX *= 0.7
+        tipVY *= 0.7
+        tipX += (cx - tipX) * 0.24
+        tipY += (cy - tipY) * 0.24
+      }
+      tipX = clamp(tipX, -margin, w + margin)
+      tipY = clamp(tipY, -margin, h + margin)
 
-      for (let i = 0; i < strands; i++) {
-        const p = pathRefs.current[i];
-        if (!p) continue;
-        const t = i / (strands - 1) - 0.5;
-        const seed = seeds[i];
-        const spread = 1 - Math.min(stretch, 0.8);
-        const off = t * 20 * spread;
-
-        const sx = ax + nx * off * 0.3;
-        const sy = ay + ny * off * 0.3;
-        const ex = bx + nx * off;
-        const ey = by + ny * off;
-
-        const bow =
-          (slack * 0.5 + 14 * (1 - Math.min(stretch * 3, 1))) * seed +
-          t * slack * 0.4 +
-          vx * 0.02 * seed;
-        const mx = (sx + ex) / 2 + nx * bow;
-        const my = (sy + ey) / 2 + ny * bow + slack * 0.25;
-
-        p.setAttribute(
-          "d",
-          `M${sx.toFixed(1)} ${sy.toFixed(1)} Q${mx.toFixed(1)} ${my.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`
-        );
-        p.style.strokeWidth = (2.2 - Math.min(stretch, 1) * 1.4).toFixed(2);
+      /* Masa homogénea de pintura: una sola silueta rellena que sale del
+         botón y corre hacia la mano. Nace EN el borde de la píldora, del
+         lado del puntero (punto de fuga del estadio), nunca en medio. */
+      const A = (w - h) / 2
+      const segX = clamp(ddx, -A, A)
+      const ox2 = ddx - segX
+      const oy2 = ddy
+      const olen = Math.hypot(ox2, oy2)
+      const rimOk = olen > 0.6
+      const BX =
+        margin + cx + sx + (rimOk ? segX + (ox2 / olen) * (h / 2 - 3) : 0)
+      const BY = margin + cy + sy + (rimOk ? (oy2 / olen) * (h / 2 - 3) : 0)
+      const tdx = margin + tipX - BX
+      const tdy = margin + tipY - BY
+      const tl = Math.hypot(tdx, tdy) || 1
+      const dirX = tdx / tl
+      const dirY = tdy / tl
+      let nx = -dirY
+      let ny = dirX
+      if (ny < 0) {
+        nx = -nx
+        ny = -ny
       }
 
-      const settled =
-        !drag.active && speed < 0.5 && Math.abs(x) < 0.2 && Math.abs(y) < 0.2;
-      if (settled) {
-        raf = 0;
-        x = y = vx = vy = 0;
-        btn.style.transform = "translate3d(0,0,0) rotate(0deg)";
-        btn.style.filter = "none";
-        return;
+      const sag = (10 + tl * 0.16) * (1 - 0.78 * es)
+      const slow = 1 - 0.86 * press
+      const whipAmp = (2.6 + tl * 0.052) * (1 - 0.4 * press)
+      const whipPh = t * 0.0042
+      /* Culebreo lento: la masa serpentea a un lado y regresa — pinta viva. */
+      const meanderAmp = (7 + tl * 0.075) * Math.max(0.25, 1 - press)
+      const meanderPh = Math.sin(t * 0.0011) * 1.6
+
+      const K = 13
+      const cxs: number[] = []
+      const cys: number[] = []
+      for (let k = 0; k <= K; k++) {
+        const u = k / K
+        const taper = Math.sin(u * Math.PI)
+        const grow = 0.32 + 0.68 * u
+        const g =
+          sag * 0.55 * taper +
+          meanderAmp *
+            Math.sin(u * 1.9 + meanderPh) *
+            (0.18 + 0.82 * u) +
+          slow *
+            whipAmp *
+            (Math.sin(u * 2.9 - whipPh) + 0.45 * Math.sin(u * 6.2 + whipPh * 1.7)) *
+            taper *
+            grow
+        cxs.push(BX + tdx * u + nx * g)
+        cys.push(BY + tdy * u + ny * g)
       }
-      raf = requestAnimationFrame(tick);
-    };
+      /* Vaivén gelatinoso de la cabeza. */
+      const tipJit = nx * 1.6 * Math.sin(t * 0.0061) + ny * 0.9 * Math.sin(t * 0.0048 + 1)
+      cxs[K] += tipJit
+      cys[K] += tipJit
+
+      const headR = (6.5 + 10.5 * es + press * 3.4) * (1 + 0.05 * Math.sin(t * 0.0045))
+      /* Estirón por velocidad: la masa se alarga con inercia, como pintura. */
+      /* Perfil de anchura de pintura: fina al escapar por el borde,
+         panza en medio, cabeza gorda. Con ondulación en las paredes. */
+      const velQ = clamp(Math.hypot(tipVX, tipVY) / 1200, 0, 0.55)
+      const hwAt = (u: number) =>
+        (h * (0.27 - 0.09 * u) + h * 0.11 * Math.sin(u * Math.PI * 0.9) + headR * 0.5 * u * u) *
+        (1 + 0.16 * Math.sin(u * 4.1 - whipPh * 1.25) * slow) *
+        (1 + 0.14 * press) *
+        (1 + velQ * 0.25 * u)
+
+      /* Normales por muestra desde la tangente de la cadena. */
+      const normalsX: number[] = []
+      const normalsY: number[] = []
+      for (let k = 0; k <= K; k++) {
+        const a = Math.max(0, k - 1)
+        const b = Math.min(K, k + 1)
+        const tx2 = cxs[b] - cxs[a]
+        const ty2 = cys[b] - cys[a]
+        const tn = Math.hypot(tx2, ty2) || 1
+        normalsX.push(-ty2 / tn)
+        normalsY.push(tx2 / tn)
+      }
+
+      /* Contorno cerrado: lado izquierdo, cabeza redonda, lado derecho. */
+      const buildRing = (wMul: number, ox: number, oy: number) => {
+        const out: number[] = []
+        const outY: number[] = []
+        for (let k = 0; k <= K; k++) {
+          const hw = hwAt(k / K) * wMul
+          out.push(cxs[k] + normalsX[k] * hw + ox)
+          outY.push(cys[k] + normalsY[k] * hw + oy)
+        }
+        const capSide = hwAt(1) * wMul * (1 - velQ * 0.3) * 0.55
+        const capLen = headR * 1.25 * wMul * (1 + velQ * 0.6)
+        out.push(cxs[K] + normalsX[K] * capSide + dirX * capLen * 0.82 + ox)
+        outY.push(cys[K] + normalsY[K] * capSide + dirY * capLen * 0.82 + oy)
+        out.push(cxs[K] + dirX * capLen + ox)
+        outY.push(cys[K] + dirY * capLen + oy)
+        out.push(cxs[K] - normalsX[K] * capSide + dirX * capLen * 0.82 + ox)
+        outY.push(cys[K] - normalsY[K] * capSide + dirY * capLen * 0.82 + oy)
+        for (let k = K; k >= 0; k--) {
+          const hw = -hwAt(k / K) * wMul
+          out.push(cxs[k] + normalsX[k] * hw + ox)
+          outY.push(cys[k] + normalsY[k] * hw + oy)
+        }
+        return gooBlob(out, outY)
+      }
+
+      /* Halo suave detrás: la pintura resbala un poco más allá de la masa. */
+      spillRef.current?.setAttribute("d", buildRing(1.5, nx * 4.5, ny * 4.5))
+      bodyRef.current?.setAttribute("d", buildRing(1, 0, 0))
+
+      /* Cabeza: elipse orientada al punto de anclaje, que late y se alarga. */
+      const angle = (Math.atan2(dirY, dirX) * 180) / Math.PI
+      const cxHead = cxs[K].toFixed(1)
+      const cyHead = cys[K].toFixed(1)
+      blobRef.current?.setAttribute("cx", cxHead)
+      blobRef.current?.setAttribute("cy", cyHead)
+      blobRef.current?.setAttribute("rx", (headR * 0.95).toFixed(1))
+      blobRef.current?.setAttribute("ry", (headR * (1.02 + velQ * 0.8)).toFixed(1))
+      blobRef.current?.setAttribute(
+        "transform",
+        `rotate(${angle.toFixed(1)} ${cxHead} ${cyHead})`,
+      )
+
+      publishGrip(es > 0.28 ? (es - 0.28) / 0.72 : 0)
+      raf = requestAnimationFrame(tick)
+    }
 
     const wake = () => {
       if (!raf) {
-        last = performance.now();
-        raf = requestAnimationFrame(tick);
+        last = performance.now()
+        raf = requestAnimationFrame(tick)
       }
-    };
+    }
 
-    const down = (e: PointerEvent) => {
-      btn.setPointerCapture(e.pointerId);
-      drag.active = true;
-      drag.sx = e.clientX;
-      drag.sy = e.clientY;
-      drag.dx = drag.dy = drag.moved = 0;
-      wake();
-    };
-    const move = (e: PointerEvent) => {
-      if (!drag.active) return;
-      drag.dx = e.clientX - drag.sx;
-      drag.dy = e.clientY - drag.sy;
-      drag.moved = Math.max(drag.moved, Math.hypot(drag.dx, drag.dy));
-    };
-    const up = () => {
-      if (!drag.active) return;
-      drag.active = false;
-      if (drag.moved < 6) onClickRef.current?.();
-      wake();
-    };
+    /* El rect se invalida al hacer scroll; no relee layout dentro del handler. */
+    const onMove = (e: PointerEvent) => {
+      pt.x = e.clientX
+      pt.y = e.clientY
+      pt.active = true
+      wake()
+    }
+    const onLeave = () => {
+      pt.active = false
+      wake()
+    }
+    const onScroll = () => {
+      rectDirty = true
+      wake()
+    }
+    const down = () => btn.setAttribute("data-pressed", "")
+    const up = () => btn.removeAttribute("data-pressed")
 
-    btn.addEventListener("pointerdown", down);
-    btn.addEventListener("pointermove", move);
-    btn.addEventListener("pointerup", up);
-    btn.addEventListener("pointercancel", up);
-
-    wake();
+    measure()
+    window.addEventListener("pointermove", onMove, { passive: true })
+    document.documentElement.addEventListener("pointerleave", onLeave)
+    window.addEventListener("scroll", onScroll, { passive: true, capture: true })
+    btn.addEventListener("pointerdown", down)
+    window.addEventListener("pointerup", up, { passive: true })
+    window.addEventListener("pointercancel", up)
+    const ro = new ResizeObserver(measure)
+    ro.observe(btn)
 
     return () => {
-      cancelAnimationFrame(raf);
-      btn.removeEventListener("pointerdown", down);
-      btn.removeEventListener("pointermove", move);
-      btn.removeEventListener("pointerup", up);
-      btn.removeEventListener("pointercancel", up);
-    };
-  }, [strands, anchor.x, anchor.y, maxStretch]);
+      cancelAnimationFrame(raf)
+      window.removeEventListener("pointermove", onMove)
+      document.documentElement.removeEventListener("pointerleave", onLeave)
+      window.removeEventListener("scroll", onScroll, { capture: true })
+      btn.removeEventListener("pointerdown", down)
+      window.removeEventListener("pointerup", up)
+      window.removeEventListener("pointercancel", up)
+      ro.disconnect()
+    }
+  }, [radius, size])
 
-  const containerClassName = cn(
-    "relative inline-flex",
-    disabled && "pointer-events-none opacity-50",
-    className
-  );
+  const sizeStyle: React.CSSProperties = {
+    padding: `${SIZES[size].padY}px ${SIZES[size].padX}px`,
+    fontSize: SIZES[size].font,
+    lineHeight: 1,
+  }
+
+  const btnClasses = cn("stretch-btn", shown && "pointer-events-none opacity-55")
+
+  const content = isLoading ? (
+    <span className="flex items-center justify-center gap-2">
+      <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.3" strokeWidth="3" />
+        <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+      </svg>
+      Cargando…
+    </span>
+  ) : (
+    (children ?? label)
+  )
+
+  const stage = (
+    <svg ref={svgRef} className="stretch-stage" aria-hidden="true">
+      <path ref={spillRef} fill="var(--sb-thread)" opacity="0.14" />
+      <path ref={bodyRef} fill="var(--sb-thread)" opacity="0.97" />
+      <ellipse ref={blobRef} fill="var(--sb-thread)" cx="0" cy="0" rx="0" ry="0" opacity="0.97" />
+    </svg>
+  )
+
+  if (href) {
+    return (
+      <span
+        ref={wrapRef}
+        className={cn("stretch", className)}
+        style={style}
+        data-variant={variant}
+        data-grip={disabled ? undefined : ""}
+        aria-disabled={disabled || undefined}
+      >
+        {stage}
+        <Link
+          ref={btnRef as React.Ref<HTMLAnchorElement>}
+          href={href}
+          aria-label={label}
+          aria-busy={isLoading || undefined}
+          className={btnClasses}
+          style={sizeStyle}
+          onClick={disabled || isLoading ? (e) => e.preventDefault() : undefined}
+          tabIndex={disabled ? -1 : undefined}
+        >
+          {content}
+        </Link>
+      </span>
+    )
+  }
 
   return (
-    <div ref={wrapRef} className={containerClassName}>
-      <svg
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          overflow: "visible",
-          pointerEvents: "none",
-        }}
+    <span
+      ref={wrapRef}
+      className={cn("stretch", className)}
+      style={style}
+      data-variant={variant}
+      data-grip={disabled ? undefined : ""}
+    >
+      {stage}
+      <button
+        ref={btnRef as React.Ref<HTMLButtonElement>}
+        type={type}
+        aria-label={label}
+        aria-busy={isLoading || undefined}
+        disabled={disabled || isLoading}
+        className={btnClasses}
+        style={sizeStyle}
+        onClick={() => onClickRef.current?.()}
       >
-        {Array.from({ length: strands }).map((_, i) => (
-          <path
-            key={i}
-            ref={(el) => {
-              pathRefs.current[i] = el;
-            }}
-            fill="none"
-            stroke="#111"
-            strokeLinecap="round"
-            opacity={0.85}
-          />
-        ))}
-      </svg>
+        {content}
+      </button>
+    </span>
+  )
+}
 
-      <Link
-        href={href}
-        className="relative block overflow-hidden"
-        style={
-          {
-            position: "relative",
-            padding: "16px 34px",
-            borderRadius: 999,
-            border: "none",
-            background: "#0b0b0b",
-            color: "#fff",
-            font: "600 18px/1 system-ui, -apple-system, sans-serif",
-            letterSpacing: "-0.02em",
-            cursor: disabled ? "not-allowed" : "grab",
-            touchAction: "none",
-            userSelect: "none",
-            WebkitUserSelect: "none",
-            willChange: "transform, filter",
-            boxShadow: "0 10px 30px rgba(0,0,0,.25)",
-            ...style,
-          } as React.CSSProperties
-        }
-      >
-        {isLoading ? (
-          <span className="flex items-center justify-center gap-2">
-            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-            </svg>
-            {label || "Cargando..."}
-          </span>
-        ) : (
-          children || label
-        )}
-      </Link>
-    </div>
-  );
+/* Contorno cerrado y suavizado por puntos medios: silueta continua de la
+   masa líquida — garantiza que todos los bordes sean curvas, nunca rectas. */
+function gooBlob(xs: number[], ys: number[]): string {
+  const m = xs.length
+  if (m < 3) return ""
+  const j = m - 1
+  let d = `M${((xs[j] + xs[0]) / 2).toFixed(1)} ${((ys[j] + ys[0]) / 2).toFixed(1)}`
+  for (let i = 0; i < m; i++) {
+    const k = (i + 1) % m
+    d += ` Q${xs[i].toFixed(1)} ${ys[i].toFixed(1)} ${((xs[i] + xs[k]) / 2).toFixed(1)} ${((ys[i] + ys[k]) / 2).toFixed(1)}`
+  }
+  return `${d} Z`
 }

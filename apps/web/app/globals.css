@@ -175,6 +175,10 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
+  .ease-bezier {
+    transition-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
 }
 
 @layer utilities {
@@ -253,3 +257,285 @@
     text-shadow: none;
   }
 }
+
+/* ── Botón Stretch (bisel + hilos viscosos) y guante ─────────────────────
+   Los tokens siguen la lógica del sistema: tinta sobre papel en claro,
+   papel sobre tinta en oscuro. Las variantes solo sobreescriben variables. */
+:root {
+  --btn-rim: rgba(255, 255, 255, 0.28);
+  --btn-low: rgba(0, 0, 0, 0.5);
+  --sb-bg: #17140f;
+  --sb-fg: #f7f4ed;
+  --sb-sheen: rgba(255, 255, 255, 0.16);
+  --sb-rim: rgba(255, 255, 255, 0.24);
+  --sb-low: rgba(0, 0, 0, 0.55);
+  --sb-dome: rgba(255, 255, 255, 0.09);
+  --sb-txt-sh: rgba(0, 0, 0, 0.55);
+  --sb-thread: #17140f;
+  --glove-fill: #f7f4ed;
+  --glove-ink: #17140f;
+  --glove-shade: #eae5d9;
+}
+
+.dark {
+  --btn-rim: rgba(255, 255, 255, 0.55);
+  --btn-low: rgba(0, 0, 0, 0.22);
+  --sb-bg: #f1eee4;
+  --sb-fg: #17140f;
+  --sb-sheen: rgba(255, 255, 255, 0.65);
+  --sb-rim: rgba(255, 255, 255, 0.9);
+  --sb-low: rgba(0, 0, 0, 0.2);
+  --sb-dome: rgba(255, 255, 255, 0.38);
+  --sb-txt-sh: rgba(255, 255, 255, 0.6);
+  --sb-thread: #f1eee4;
+  --glove-fill: #191814;
+  --glove-ink: #f1ede3;
+  --glove-shade: #26231d;
+}
+
+.stretch {
+  position: relative;
+  display: inline-flex;
+  isolation: isolate;
+}
+
+.stretch-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.stretch-btn {
+  position: relative;
+  z-index: 1;
+  border: none;
+  border-radius: 999px;
+  /* Relieve 3D: cúpula de gel con brillo lateral alto y luz de
+     subsuperficie abajo; nada de gradientes decorativos — es volumen. */
+  background:
+    radial-gradient(115% 80% at 24% 6%, var(--sb-sheen) 0%, transparent 48%),
+    radial-gradient(120% 70% at 50% 108%, var(--sb-dome) 0%, transparent 58%),
+    linear-gradient(180deg, var(--sb-sheen) 0%, transparent 36%),
+    var(--sb-bg);
+  color: var(--sb-fg);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow:
+    inset 0 1.5px 0 var(--sb-rim),
+    inset 0 -4px 7px var(--sb-low),
+    0 1px 0 hsl(var(--background)),
+    0 10px 24px hsl(var(--foreground) / 0.22);
+  will-change: transform, filter;
+}
+
+/* Al presionar, el gel se hunde: sombra interior profunda y caída corta. */
+.stretch-btn[data-pressed] {
+  box-shadow:
+    inset 0 2.5px 5px var(--sb-low),
+    inset 0 1px 0 var(--sb-rim),
+    inset 0 -2px 3px var(--sb-dome),
+    0 1px 0 hsl(var(--background)),
+    0 4px 9px hsl(var(--foreground) / 0.16);
+}
+
+.stretch-btn:focus-visible {
+  outline: 3px solid hsl(var(--primary));
+  outline-offset: 4px;
+}
+
+.stretch[data-variant="accent"] {
+  --sb-bg: hsl(var(--accent));
+  --sb-fg: hsl(var(--accent-foreground));
+  --sb-sheen: rgba(255, 255, 255, 0.3);
+  --sb-rim: rgba(255, 255, 255, 0.5);
+  --sb-low: rgba(52, 44, 0, 0.3);
+  --sb-dome: rgba(255, 255, 255, 0.24);
+  --sb-txt-sh: rgba(40, 34, 0, 0.35);
+  --sb-thread: hsl(var(--accent-foreground));
+}
+
+.stretch[data-variant="aura"] {
+  --sb-bg: hsl(var(--aura));
+  --sb-fg: hsl(var(--aura-foreground));
+  --sb-sheen: rgba(255, 255, 255, 0.3);
+  --sb-rim: rgba(255, 255, 255, 0.5);
+  --sb-low: rgba(66, 44, 0, 0.32);
+  --sb-dome: rgba(255, 255, 255, 0.26);
+  --sb-txt-sh: rgba(40, 28, 0, 0.4);
+  --sb-thread: hsl(var(--foreground));
+}
+
+.stretch[data-variant="outline"] {
+  --sb-bg: hsl(var(--surface));
+  --sb-fg: hsl(var(--foreground));
+  --sb-sheen: transparent;
+  --sb-rim: hsl(var(--foreground) / 0.14);
+  --sb-low: rgba(0, 0, 0, 0.07);
+  --sb-txt-sh: transparent;
+  --sb-thread: hsl(var(--foreground));
+}
+
+.stretch[data-variant="outline"] .stretch-btn {
+  box-shadow:
+    inset 0 1px 0 var(--sb-rim),
+    inset 0 -3px 6px var(--sb-low),
+    0 0 0 1px hsl(var(--line)),
+    0 10px 24px hsl(var(--foreground) / 0.14);
+}
+
+/* El guante reemplaza al cursor salvo en campos de texto y iframes. */
+html.has-glove *:not(input):not(textarea):not(select):not([contenteditable]):not(iframe) {
+  cursor: none !important;
+}
+
+/* Poses del guante: solo la activa se ve; el cambio tiene un pop suave. */
+svg.glove-svg {
+  width: 80px;
+  height: 100px;
+  display: none;
+  overflow: visible;
+}
+
+[data-pose="point"] .glove-svg[data-glove-svg="point"],
+[data-pose="open"] .glove-svg[data-glove-svg="open"],
+[data-pose="fist"] .glove-svg[data-glove-svg="fist"] {
+  display: block;
+  animation: glove-pop 0.22s cubic-bezier(0.2, 1.5, 0.4, 1);
+  transform-origin: 24px 6px;
+}
+
+@keyframes glove-pop {
+  from {
+    transform: scale(0.86);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* ── Movimiento con scroll: reveals, parallax y progreso ─────────────────
+   Todo depende de opacity y transform — nada que desencadene reflow. El
+   estado oculto solo aplica cuando hay JS activo (html.js): sin JS la
+   página se lee completa. Con `prefers-reduced-motion` el componente
+   `Reveal` muestra el contenido de una vez. */
+
+:root {
+  --ease-apple: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html.js [data-reveal] {
+  opacity: 0;
+  transition:
+    opacity 0.9s var(--ease-apple),
+    transform 0.9s var(--ease-apple);
+  transition-delay: var(--reveal-d, 0ms);
+  will-change: opacity, transform;
+}
+
+html.js [data-reveal="up"] {
+  transform: translate3d(0, 34px, 0) scale(0.985);
+}
+
+html.js [data-reveal="left"] {
+  transform: translate3d(-32px, 0, 0);
+}
+
+html.js [data-reveal="right"] {
+  transform: translate3d(32px, 0, 0);
+}
+
+html.js [data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+}
+
+.scroll-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 60;
+  height: 2px;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--aura)));
+  pointer-events: none;
+}
+
+/* ── Material Apple: panel de vidrio con cúpula, hilo y profundidad ──────
+   Comparte el lenguaje del botón Stretch (cúpula arriba, hilo de 1px,
+   caída suave). El blur es contenido (composited) y pequeño. */
+
+.glass-card {
+  position: relative;
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(150% 110% at 20% 0%, var(--sb-sheen) 0%, transparent 52%),
+    hsl(var(--surface) / 0.88);
+  -webkit-backdrop-filter: blur(10px) saturate(1.25);
+  backdrop-filter: blur(10px) saturate(1.25);
+  box-shadow:
+    0 0 0 1px hsl(var(--line) / 0.85),
+    inset 0 1px 0 hsl(var(--background)),
+    0 2px 8px hsl(var(--foreground) / 0.06),
+    0 18px 44px -20px hsl(var(--foreground) / 0.28);
+  transition:
+    transform 0.5s var(--ease-apple),
+    box-shadow 0.5s var(--ease-apple),
+    background 0.5s var(--ease-apple);
+}
+
+.glass-card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 0 0 1px hsl(var(--foreground) / 0.3),
+    inset 0 1px 0 hsl(var(--background)),
+    0 4px 12px hsl(var(--foreground) / 0.07),
+    0 28px 58px -22px hsl(var(--foreground) / 0.4);
+}
+
+.glass-card:active {
+  transform: translateY(-1px) scale(0.995);
+  transition-duration: 0.15s;
+}
+
+.dark .glass-card {
+  background:
+    radial-gradient(150% 110% at 20% 0%, rgba(255, 255, 255, 0.05) 0%, transparent 52%),
+    hsl(var(--surface) / 0.74);
+  box-shadow:
+    0 0 0 1px hsl(var(--foreground) / 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 18px 44px -18px rgba(0, 0, 0, 0.55);
+}
+
+.dark .glass-card:hover {
+  box-shadow:
+    0 0 0 1px hsl(var(--foreground) / 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.35),
+    0 28px 58px -20px rgba(0, 0, 0, 0.65);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.js [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .glass-card,
+  .glass-card:hover {
+    transform: none;
+  }
+
+  .scroll-progress {
+    transform: none;
+    opacity: 0;
+  }
+}
+

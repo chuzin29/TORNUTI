@@ -49,70 +49,98 @@ El modo oscuro invierte la lógica de papel y tinta, mantiene el cobalto como ac
 - Retícula de 12 columnas en escritorio, una columna en móvil.
 - Espaciado en múltiplos de 4.
 
-## Componentes interactivos
+## Sistema de botones
 
-## Botones Stretch
+Todos los botones comparten una píldora con **bisel**: brillo superior, borde
+interno y caída inferior, definidos en tokens (`--btn-rim`, `--btn-low`)
+que invierten la lógica en modo oscuro. Al pasar el cursor el botón se
+elevará 2 px con una curva suave; al presionar se comprime. Esto aplica a
+`Button` (variantes primario, secundario, contorno, ghost, danger y aura)
+y al botón insignia `StretchyButton`.
 
-Los botones tipo "Stretch" tienen una micro-interacción con tiempo de
-arrastre: al hacer clic o tocar el botón, se visualizan líneas animadas
-que salen desde el punto de anclaje del botón, simulando un efecto
-"estiramiento" físico. El usuario puede arrastrarlos con el mouse o el
-dedo.
+### Botón Stretch
 
-- **Estado activo:** líneas saliendo del botón hacia el ratón/ded
-- **Estado soltado:** líneas se estiraron hasta el extremo
-- **Sin efecto:** cuando el botón está `disabled`
-- **Independiente:** cada botón puede tener su propio `anchor` (punto de
-  partida de las líneas)
+El botón insignia suelta una **masa homogénea de pintura** dentro de su
+radio de alcance (invisible, sin margen dibujado): la masa nace del borde
+de la píldora, exactamente del lado del puntero, y corre hasta la mano con
+onda viajera y culebreo lento; la cabeza engorda y se estira con la
+velocidad. Es una sola silueta rellena curva —nunca hilos ni líneas
+rectas—. El botón se inclina suavemente hacia la masa y, al moverse
+rápido, solo lleva una estela de difuminación ligera (tope 0.65 px).
+Al presionar se comprime, la masa se contiene y el guante cierra el puño.
 
-### Uso
+La superficie trae relieve 3D: cúpula de gel con brillo lateral y luz de
+subsurface abajo (`--sb-sheen`, `--sb-dome`), hundido interior al presionar.
+
+- Archivo: `apps/web/components/StretchyButton.tsx`
+- Variantes: `ink` (tinta sobre papel), `accent` (lima), `aura` (ámbar) y `outline`.
+- Acepta `href` (renderiza un `Link`) o `onClick` (renderiza un `button`).
+- Con `disabled` o `isLoading` no suelta masa.
+- Con `prefers-reduced-motion` no hay masa ni inclinación; solo estados CSS.
+- El guante reacciona a su atributo `data-grip` a través de `lib/grip-bus.ts`.
 
 ```tsx
-<StretchButton
-  label="Comprar ahora"
-  onClick={handleBuy}
-  anchor={{ x: -100, y: 120 }}
-  strands={16}
-/>
+<StretchyButton href="/crear" label="Publica tu torneo gratis" size="lg" radius={160} variant="ink" />
 ```
-
-Los botones están disponibles en:
-
-- `apps/web/components/StretchyButton.tsx`
-- `apps/web/components/CustomCursor.tsx`
 
 ## Cursor personalizado
 
-El cursor del ratón se reemplaza por un **guante de color** que sigue
-el puntero en todas partes de la interfaz. El cursor también respeta
-`prefers-reduced-motion` y deshabilita el efecto de arrastre cuando
-está en modo de interfaz.
+El cursor del ratón se reemplaza por un **guante de caricatura** (estilo
+Mickey: relleno blanco, contorno grueso y caída) con tres poses: señalar
+(por defecto), abierto (cuando algún botón Stretch lo atrae con su masa)
+y puño (mientras se presiona). Los campos de texto
+(`input`, `textarea`, `select`) conservan el cursor nativo y ahí el guante
+se oculta. Está oculto en dispositivos táctiles.
 
 - Archivo: `apps/web/components/CustomCursor.tsx`
-- Activado globalmente en `apps/web/providers/theme-provider.tsx`
+- Montado globalmente en `apps/web/components/providers/providers.tsx`
+- Los colores siguen los tokens `--glove-fill`, `--glove-ink` y `--glove-shade`
+  para adaptarse al modo claro y oscuro.
+- Con `prefers-reduced-motion` no tiembla ni gira con la inercia.
 
-## Carrusel de fondo (fondo animado)
+## Marquee de disciplinas
 
-La página principal (`/`) tiene un fondo animado en forma de
-carrusel expositor de torneos. Los torneos de la lista principal se
-desplazan horizontalmente de manera infinita, dando la sensación de
-una vitrina de deportes en movimiento.
+La portada incluye una cinta continua con las disciplinas de la agenda,
+que recorre el ancho de la página en bucle para dar la sensación de
+vitrina deportiva.
 
-- Componente: `apps/web/components/TournamentCarousel.tsx`
-- Animación respeta `prefers-reduced-motion`
-- Funciona en móvil con toque horizontal
+- Sección `Marquee` en `apps/web/app/page.tsx`
+- Animación con la utilidad `animate-marquee` solo bajo `motion-safe`
+- El segundo listado del marquee es `aria-hidden` para lectores de pantalla
+
+## Material de tarjetas y movimiento con scroll
+
+Las cajas de la interfaz usan el material `.glass-card`: fondo de vidrio
+(`backdrop-blur` con saturación), cúpula de brillo arriba, hilo de 1 px,
+dos capas de profundidad y hover que eleva 4 px con curva
+`--ease-apple`. Aplica a tarjetas de torneo, pasos, categorías, el top de
+Aura y la fila de métricas de portada.
+
+El movimiento ligado al scroll vive en `apps/web/components/motion.tsx`:
+
+- `Reveal`: entra al detalle cuando la pieza cruza el camarín; un solo
+  `IntersectionObserver` compartido para todo el árbol, con retardo por
+  escalones (`--reveal-d`). Una vez terminada la entrada, el atributo se
+  retira para que hover y foco recuperen su propia transición.
+- `Parallax`: profundidad con `translate3d` en un rAF coalescido con
+  listeners pasivos; no relee layout cada frame.
+- `ScrollProgress`: hilo de lectura fijo en el borde superior.
+
+Sin JavaScript el estado oculto no existe (la página se lee completa:
+`html.js`), y con `prefers-reduced-motion` no hay reveals ni parallax.
 
 ## Accesibilidad
 
 - Todos los componentes interactivos soportan `prefers-reduced-motion`
 - Los botones respetan `Enter` y `Espacio` para activar
-- El cursor personalizado se desactiva cuando el usuario navega con teclado
-- Los estados `disabled` no generan animaciones ni efectos de arrastre
+- El guante no interfiere con la navegación por teclado
+- Los estados `disabled` no generan animaciones
+
+## Componentes
+
 - Bordes de 1 px; radios pequeños para mantener la sensación de impreso.
 - Las fichas usan una columna principal y una lateral pegajosa en escritorio.
 - Las tablas y cuadros permiten desplazamiento horizontal en pantallas angostas.
-
-## Componentes
 
 ### Marca
 

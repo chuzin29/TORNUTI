@@ -58,6 +58,9 @@ const config: Config = {
       boxShadow: {
         lift: "0 18px 40px -24px hsl(var(--foreground) / 0.35)",
         panel: "0 1px 0 0 hsl(var(--line)), 0 24px 60px -48px hsl(var(--foreground) / 0.5)",
+        /* Bisel del sistema de botones: brillo superior, caída inferior y sombra proyectada. */
+        bevel: "inset 0 1px 0 0 var(--btn-rim), inset 0 -2px 4px var(--btn-low), 0 1px 0 0 hsl(var(--background)), 0 10px 18px -14px hsl(var(--foreground) / 0.6)",
+        bevelLift: "inset 0 1px 0 0 var(--btn-rim), inset 0 -3px 5px var(--btn-low), 0 1px 0 0 hsl(var(--background)), 0 14px 26px -12px hsl(var(--foreground) / 0.45)",
       },
       keyframes: {
         "draw-line": {

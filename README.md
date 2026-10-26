@@ -190,16 +190,18 @@ Tornuti es un proyecto abierto y en evolución. La API es funcional y está prob
 
 Los siguientes pasos están en el roadmap: sincronizar todos los listados con la API, edición de torneos desde el panel, notificaciones por correo, doble eliminación, fase de grupos completa y transmisión de marcadores en vivo.
 
-## Mejoras pendientes
+## Mejoras de experiencia
 
-Lugares donde la web puede mejorar visual y de experiencia:
+Iteración de diseño y de cuentas recién cerrada. Lo que ya quedó resuelto:
 
-- **Diseño de la página principal:** la portada actual es funcional pero puede mejorar la jerarquía visual y el uso del espacio.
-- **Estructura y organización:** el layout de las secciones puede reorganizarse para que el contenido sea más claro y fácil de navegar.
-- **Animaciones:** hay mejoras pendientes en las transiciones, el carrusel de fondo y las micro-interacciones generales.
-- **Botón "Stretch":** el componente de botón estirable está implementado pero sus efectos no son consistentes en todas las páginas. Alguna instancias no muestran la animación completa.
-- **Cursor personalizado:** el cursor con el guante está activado pero no se aplica en todas las partes de la interfaz (tiene que ver con los estilos del componente `CustomCursor.tsx` y la configuración de `theme-provider.tsx`).
-- **Accesibilidad:** algunas animaciones de fondo podrían respetar más el `prefers-reduced-motion` en todas las páginas.
+- **Portada rediseñada:** jerarquía de impreso deportivo con la agenda y el cuadro en vivo al frente, ahora con material de tarjetas estilo Apple (`.glass-card`: vidrio, hilo de 1 px, profundidad en dos capas y hover que eleva 4 px), cabecera esmerilada y revelados al hacer scroll con `Reveal`, parallax y barra de progreso de bajo costo (un solo `IntersectionObserver` compartido; sin JS la página se lee completa).
+- **Contraste reparado:** los botones de la portada usaban clases que no existían en el configurador de Tailwind (`bg-morado`, `bg-card`, `border-border`), lo que dejaba texto claro sobre fondo claro. Toda la interfaz usa ahora los tokens reales del tema claro y oscuro.
+- **Botón Stretch como pintura:** el componente insignia es píldora con bisel y relieve 3D real (cúpula de gel, luz de subsurface, hundimiento al presionar). Al acercar la mano, una sola masa homogénea de "pintura" nace en el borde de la píldora del lado del puntero y corre hasta la mano: silueta rellena con onda viajera, culebreo lento y cabeza gorda que se estira con la velocidad; sin hilillos ni líneas rectas, y con difuminación casi nula para que el botón siempre se lea con nitidez. Se usa en las llamadas principales de portada y en el envío de los formularios de cuenta.
+- **Cursor con guante en toda la interfaz:** el guante estilo Mickey (blanco con contorno, caída y tres poses — señalar, abierto, puño) vive en los proveedores globales, cambia de color por tema y se desactiva en pantallas táctiles.
+- **Cuentas con Supabase:** entrada por correo y contraseña reales (`signInWithPassword`), alta con la confirmación de correo que exige el panel (con mensaje honesto cuando falta confirmar), cierre de sesión con `signOut`, flujo de Google por `/auth/callback` con aviso amigable mientras el proveedor Google está desactivado en el panel. El esquema completo con RLS vive en `scripts/supabase-schema.sql` y las instrucciones paso a paso en `docs/SUPABASE.md`.
+- **Correcciones de ingeniería:** cierre de formularios duplicados en la cuenta, tipos de sesión e inscripción alineados, `asChild` real en `Button`, tipado de cookies de Supabase, y el HTML del servidor ya no queda vacío detrás de un estado de carga.
+
+Los siguientes pasos están en el roadmap: sincronizar todos los listados con la base de datos (el esquema ya está listo para migrar del JSON de demo), edición de torneos desde el panel, notificaciones por correo, doble eliminación, fase de grupos completa y transmisión de marcadores en vivo.
 
 ## Licencia
 

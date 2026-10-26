@@ -15,7 +15,7 @@ export function TournamentCard({ tournament }: { tournament: Tournament }) {
   return (
     <Link
       href={`/torneos/${tournament.slug}`}
-      className="focus-ring group flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-foreground/35 hover:shadow-lift"
+      className="glass-card focus-ring group flex h-full flex-col overflow-hidden"
     >
       <div className="relative">
         <TournamentCover
