@@ -48,6 +48,66 @@ El modo oscuro invierte la lógica de papel y tinta, mantiene el cobalto como ac
 - Contenedor `shell` con ancho máximo y padding lateral consistente.
 - Retícula de 12 columnas en escritorio, una columna en móvil.
 - Espaciado en múltiplos de 4.
+
+## Componentes interactivos
+
+## Botones Stretch
+
+Los botones tipo "Stretch" tienen una micro-interacción con tiempo de
+arrastre: al hacer clic o tocar el botón, se visualizan líneas animadas
+que salen desde el punto de anclaje del botón, simulando un efecto
+"estiramiento" físico. El usuario puede arrastrarlos con el mouse o el
+dedo.
+
+- **Estado activo:** líneas saliendo del botón hacia el ratón/ded
+- **Estado soltado:** líneas se estiraron hasta el extremo
+- **Sin efecto:** cuando el botón está `disabled`
+- **Independiente:** cada botón puede tener su propio `anchor` (punto de
+  partida de las líneas)
+
+### Uso
+
+```tsx
+<StretchButton
+  label="Comprar ahora"
+  onClick={handleBuy}
+  anchor={{ x: -100, y: 120 }}
+  strands={16}
+/>
+```
+
+Los botones están disponibles en:
+
+- `apps/web/components/StretchyButton.tsx`
+- `apps/web/components/CustomCursor.tsx`
+
+## Cursor personalizado
+
+El cursor del ratón se reemplaza por un **guante de color** que sigue
+el puntero en todas partes de la interfaz. El cursor también respeta
+`prefers-reduced-motion` y deshabilita el efecto de arrastre cuando
+está en modo de interfaz.
+
+- Archivo: `apps/web/components/CustomCursor.tsx`
+- Activado globalmente en `apps/web/providers/theme-provider.tsx`
+
+## Carrusel de fondo (fondo animado)
+
+La página principal (`/`) tiene un fondo animado en forma de
+carrusel expositor de torneos. Los torneos de la lista principal se
+desplazan horizontalmente de manera infinita, dando la sensación de
+una vitrina de deportes en movimiento.
+
+- Componente: `apps/web/components/TournamentCarousel.tsx`
+- Animación respeta `prefers-reduced-motion`
+- Funciona en móvil con toque horizontal
+
+## Accesibilidad
+
+- Todos los componentes interactivos soportan `prefers-reduced-motion`
+- Los botones respetan `Enter` y `Espacio` para activar
+- El cursor personalizado se desactiva cuando el usuario navega con teclado
+- Los estados `disabled` no generan animaciones ni efectos de arrastre
 - Bordes de 1 px; radios pequeños para mantener la sensación de impreso.
 - Las fichas usan una columna principal y una lateral pegajosa en escritorio.
 - Las tablas y cuadros permiten desplazamiento horizontal en pantallas angostas.

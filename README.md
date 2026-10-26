@@ -190,6 +190,17 @@ Tornuti es un proyecto abierto y en evolución. La API es funcional y está prob
 
 Los siguientes pasos están en el roadmap: sincronizar todos los listados con la API, edición de torneos desde el panel, notificaciones por correo, doble eliminación, fase de grupos completa y transmisión de marcadores en vivo.
 
+## Mejoras pendientes
+
+Lugares donde la web puede mejorar visual y de experiencia:
+
+- **Diseño de la página principal:** la portada actual es funcional pero puede mejorar la jerarquía visual y el uso del espacio.
+- **Estructura y organización:** el layout de las secciones puede reorganizarse para que el contenido sea más claro y fácil de navegar.
+- **Animaciones:** hay mejoras pendientes en las transiciones, el carrusel de fondo y las micro-interacciones generales.
+- **Botón "Stretch":** el componente de botón estirable está implementado pero sus efectos no son consistentes en todas las páginas. Alguna instancias no muestran la animación completa.
+- **Cursor personalizado:** el cursor con el guante está activado pero no se aplica en todas las partes de la interfaz (tiene que ver con los estilos del componente `CustomCursor.tsx` y la configuración de `theme-provider.tsx`).
+- **Accesibilidad:** algunas animaciones de fondo podrían respetar más el `prefers-reduced-motion` en todas las páginas.
+
 ## Licencia
 
 MIT. Consulta [LICENSE](LICENSE).
