@@ -12,11 +12,12 @@ import { publishGrip } from "@/lib/grip-bus"
  * Estilo: píldora con bisel (brillo superior, borde interno, caída inferior)
  * que funciona sobre papel claro y tinta oscura sin perder contraste.
  *
- * Comportamiento simbionte: dentro de su radio de alcance —invisible— suelta
- * una masa viscosa: un núcleo baboso con halo y una punta gelatinosa que
- * persigue al puntero con inercia y rebote, rodeada de pelos finos. El botón
- * se inclina hacia la masa y se comprime al presionar. Fuera del radio todo
- * descansa y el bucle se apaga; con `prefers-reduced-motion` no hay simbiosis.
+ * Comportamiento simbionte: una mancha de pintura reposa en el borde del
+ * botón, del lado de la mano, y respira con contorno líquido antes de
+ * entrar a su radio invisible; al acercarse se concentra y la masa corre
+ * hasta el cursor. El botón se inclina hacia la masa y se comprime al
+ * presionar. Fuera de la zona todo descansa y el bucle se apaga; con
+ * `prefers-reduced-motion` no hay simbiosis.
  *
  * El guante del cursor (`CustomCursor`) reacciona al atributo `data-grip`.
  */
@@ -66,6 +67,9 @@ export default function StretchyButton({
   const bodyRef = useRef<SVGPathElement>(null)
   const spillRef = useRef<SVGPathElement>(null)
   const blobRef = useRef<SVGEllipseElement>(null)
+  const poolRef = useRef<SVGPathElement>(null)
+  const poolWideRef = useRef<SVGPathElement>(null)
+  const hazeRef = useRef<SVGPathElement>(null)
   const onClickRef = useRef(onClick)
   onClickRef.current = onClick
 
@@ -98,6 +102,7 @@ export default function StretchyButton({
     let t = 0
 
     let es = 0
+    let rest = 0
     let sx = 0
     let sy = 0
     let tilt = 0
@@ -125,10 +130,13 @@ export default function StretchyButton({
     const resetInk = () => {
       btn.style.transform = ""
       btn.style.filter = "none"
-      bodyRef.current?.setAttribute("d", "")
       spillRef.current?.setAttribute("d", "")
+      bodyRef.current?.setAttribute("d", "")
       blobRef.current?.setAttribute("rx", "0")
       blobRef.current?.setAttribute("ry", "0")
+      poolRef.current?.setAttribute("d", "")
+      poolWideRef.current?.setAttribute("d", "")
+      hazeRef.current?.setAttribute("d", "")
     }
 
     const settle = () => {
@@ -162,8 +170,12 @@ export default function StretchyButton({
       const uy = ddy / dl
 
       const e = pt.active ? clamp((R - dEdge) / (R * 0.62), 0, 1) : 0
+      /* Zona de reposo: antes de entrar al radio la mancha ya respira. */
+      const restR = R * 1.9
+      const eRest = pt.active ? clamp((restR - dEdge) / (restR - R), 0, 1) : 0
       es += (sstep(e) - es) * 0.16
-      if (e === 0 && es < 0.004) {
+      rest += (sstep(eRest) - rest) * 0.11
+      if (es < 0.004 && rest < 0.02) {
         settle()
         return
       }
@@ -273,16 +285,19 @@ export default function StretchyButton({
       cxs[K] += tipJit
       cys[K] += tipJit
 
-      const headR = (6.5 + 10.5 * es + press * 3.4) * (1 + 0.05 * Math.sin(t * 0.0045))
+      const headR = (6.5 + 14 * es * es * es + press * 3.4) * (1 + 0.05 * Math.sin(t * 0.0045))
       /* Estirón por velocidad: la masa se alarga con inercia, como pintura. */
       /* Perfil de anchura de pintura: fina al escapar por el borde,
          panza en medio, cabeza gorda. Con ondulación en las paredes. */
       const velQ = clamp(Math.hypot(tipVX, tipVY) / 1200, 0, 0.55)
+      /* Concentración: al asomar es delgada, al agarrar la mano engorda. */
+      const cEs = 0.62 + 0.38 * es
       const hwAt = (u: number) =>
         (h * (0.27 - 0.09 * u) + h * 0.11 * Math.sin(u * Math.PI * 0.9) + headR * 0.5 * u * u) *
         (1 + 0.16 * Math.sin(u * 4.1 - whipPh * 1.25) * slow) *
         (1 + 0.14 * press) *
-        (1 + velQ * 0.25 * u)
+        (1 + velQ * 0.25 * u) *
+        cEs
 
       /* Normales por muestra desde la tangente de la cadena. */
       const normalsX: number[] = []
@@ -297,14 +312,19 @@ export default function StretchyButton({
         normalsY.push(tx2 / tn)
       }
 
-      /* Contorno cerrado: lado izquierdo, cabeza redonda, lado derecho. */
+      /* Contorno cerrado: lado izquierdo, cabeza redonda, lado derecho.
+         Cada pared ondula con su propia fase — borde líquido de pintura. */
+      const wallPh = t * 0.0034
       const buildRing = (wMul: number, ox: number, oy: number) => {
         const out: number[] = []
         const outY: number[] = []
         for (let k = 0; k <= K; k++) {
-          const hw = hwAt(k / K) * wMul
-          out.push(cxs[k] + normalsX[k] * hw + ox)
-          outY.push(cys[k] + normalsY[k] * hw + oy)
+          const u = k / K
+          const reach = 0.22 + 0.78 * u
+          const hwL =
+            hwAt(u) * wMul * (1 + 0.12 * Math.sin(u * 5.3 - wallPh * 1.4) * reach)
+          out.push(cxs[k] + normalsX[k] * hwL + ox)
+          outY.push(cys[k] + normalsY[k] * hwL + oy)
         }
         const capSide = hwAt(1) * wMul * (1 - velQ * 0.3) * 0.55
         const capLen = headR * 1.25 * wMul * (1 + velQ * 0.6)
@@ -315,29 +335,87 @@ export default function StretchyButton({
         out.push(cxs[K] - normalsX[K] * capSide + dirX * capLen * 0.82 + ox)
         outY.push(cys[K] - normalsY[K] * capSide + dirY * capLen * 0.82 + oy)
         for (let k = K; k >= 0; k--) {
-          const hw = -hwAt(k / K) * wMul
-          out.push(cxs[k] + normalsX[k] * hw + ox)
-          outY.push(cys[k] + normalsY[k] * hw + oy)
+          const u = k / K
+          const reach = 0.22 + 0.78 * u
+          const hwR =
+            hwAt(u) * wMul * (1 + 0.14 * Math.sin(u * 4.4 + wallPh * 1.85 + 1.3) * reach)
+          out.push(cxs[k] - normalsX[k] * hwR + ox)
+          outY.push(cys[k] - normalsY[k] * hwR + oy)
         }
         return gooBlob(out, outY)
       }
 
-      /* Halo suave detrás: la pintura resbala un poco más allá de la masa. */
-      spillRef.current?.setAttribute("d", buildRing(1.5, nx * 4.5, ny * 4.5))
-      bodyRef.current?.setAttribute("d", buildRing(1, 0, 0))
+      /* Visibilidad: sin acercamiento de veras, la masa y su cabeza no se
+         dibujan — solo respira la mancha asentada en el borde. */
+      const gone = clamp((es - 0.012) / 0.055, 0, 1)
 
-      /* Cabeza: elipse orientada al punto de anclaje, que late y se alarga. */
-      const angle = (Math.atan2(dirY, dirX) * 180) / Math.PI
-      const cxHead = cxs[K].toFixed(1)
-      const cyHead = cys[K].toFixed(1)
-      blobRef.current?.setAttribute("cx", cxHead)
-      blobRef.current?.setAttribute("cy", cyHead)
-      blobRef.current?.setAttribute("rx", (headR * 0.95).toFixed(1))
-      blobRef.current?.setAttribute("ry", (headR * (1.02 + velQ * 0.8)).toFixed(1))
-      blobRef.current?.setAttribute(
-        "transform",
-        `rotate(${angle.toFixed(1)} ${cxHead} ${cyHead})`,
-      )
+      /* Mancha en reposo: pintura que ya se sienta en el borde del lado de
+         la mano, con contorno líquido (armónicos) y aliento propio, aun sin
+         entrar al radio. Se concentra al acercarse. */
+      const poolVis = Math.max(rest, es)
+      if (poolVis > 0.03) {
+        const wob = t * 0.0011
+        const poolBlob = (wideMul: number) => {
+          const xs2: number[] = []
+          const ys2: number[] = []
+          const base = h * (0.28 + 0.44 * poolVis) * wideMul
+          const px2 = BX - ux * base * 0.32
+          const py2 = BY - uy * base * 0.32
+          for (let i = 0; i < 15; i++) {
+            const ang = (i / 15) * Math.PI * 2
+            const wobR =
+              1 +
+              0.17 * Math.sin(ang * 3 + wob * 1.7) +
+              0.12 * Math.sin(ang * 5 - wob * 1.15) +
+              0.08 * Math.sin(ang * 8 + wob * 2.3) +
+              0.06 * Math.sin(ang * 2 - wob * 0.6)
+            const breathe = 1 + 0.07 * Math.sin(t * 0.0016 + ang * 1.35)
+            const rr = base * wobR * breathe
+            /* Gota tirando hacia la mano: se alarga delante y se recoge
+               detrás — nunca sangra al lado opuesto del botón. */
+            const ox3 = Math.cos(ang) * rr
+            const oy3 = Math.sin(ang) * rr
+            const along = ox3 * ux + oy3 * uy
+            const perp = -ox3 * uy + oy3 * ux
+            const alongF = along >= 0 ? 1 + 0.42 * poolVis : 1 - 0.46 * poolVis
+            const sq = 1 - 0.12 * poolVis
+            xs2.push(px2 + (along * alongF) * ux + perp * sq * -uy)
+            ys2.push(py2 + (along * alongF) * uy + perp * sq * ux)
+          }
+          return gooBlob(xs2, ys2)
+        }
+        hazeRef.current?.setAttribute("d", poolBlob(1.6))
+        poolWideRef.current?.setAttribute("d", poolBlob(1.26))
+        poolRef.current?.setAttribute("d", poolBlob(0.95))
+      } else {
+        hazeRef.current?.setAttribute("d", "")
+        poolWideRef.current?.setAttribute("d", "")
+        poolRef.current?.setAttribute("d", "")
+      }
+
+      if (gone > 0.001) {
+        /* Halo suave detrás y cuerpo: la masa corre hacia la mano. */
+        spillRef.current?.setAttribute("d", buildRing(1.5 * gone, nx * 4.5, ny * 4.5))
+        bodyRef.current?.setAttribute("d", buildRing(gone, 0, 0))
+
+        /* Cabeza: elipse orientada al punto de anclaje, que late y se alarga. */
+        const angle = (Math.atan2(dirY, dirX) * 180) / Math.PI
+        const cxHead = cxs[K].toFixed(1)
+        const cyHead = cys[K].toFixed(1)
+        blobRef.current?.setAttribute("cx", cxHead)
+        blobRef.current?.setAttribute("cy", cyHead)
+        blobRef.current?.setAttribute("rx", (headR * 0.95 * gone).toFixed(1))
+        blobRef.current?.setAttribute("ry", (headR * (1.02 + velQ * 0.8) * gone).toFixed(1))
+        blobRef.current?.setAttribute(
+          "transform",
+          `rotate(${angle.toFixed(1)} ${cxHead} ${cyHead})`,
+        )
+      } else {
+        spillRef.current?.setAttribute("d", "")
+        bodyRef.current?.setAttribute("d", "")
+        blobRef.current?.setAttribute("rx", "0")
+        blobRef.current?.setAttribute("ry", "0")
+      }
 
       publishGrip(es > 0.28 ? (es - 0.28) / 0.72 : 0)
       raf = requestAnimationFrame(tick)
@@ -412,6 +490,9 @@ export default function StretchyButton({
 
   const stage = (
     <svg ref={svgRef} className="stretch-stage" aria-hidden="true">
+      <path ref={hazeRef} fill="var(--sb-thread)" opacity="0.1" />
+      <path ref={poolWideRef} fill="var(--sb-thread)" opacity="0.2" />
+      <path ref={poolRef} fill="var(--sb-thread)" opacity="0.78" />
       <path ref={spillRef} fill="var(--sb-thread)" opacity="0.14" />
       <path ref={bodyRef} fill="var(--sb-thread)" opacity="0.97" />
       <ellipse ref={blobRef} fill="var(--sb-thread)" cx="0" cy="0" rx="0" ry="0" opacity="0.97" />

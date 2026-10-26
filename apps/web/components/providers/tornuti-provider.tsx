@@ -393,7 +393,7 @@ export function TornutiProvider({ children }: { children: React.ReactNode }) {
       value={{
         ...state,
         ready,
-        isDemo: !API_URL,
+        isDemo: !API_URL && !hasSupabase(),
         login,
         registerAccount,
         logout,

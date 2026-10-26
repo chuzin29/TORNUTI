@@ -20,6 +20,28 @@ export function getSupabaseClient() {
 }
 
 /**
+ * ¿Tiene el proyecto el proveedor de Google activado? Consulta los ajustes
+ * públicos de autenticación (solo con la clave anon). Devuelve `null` si no
+ * se pudo consultar — en ese caso se intenta el flujo normal.
+ */
+export async function isGoogleEnabled(): Promise<boolean | null> {
+  try {
+    const url =
+      (process.env.NEXT_PUBLIC_SUPABASE_URL ||
+        "https://cnizavwjsztosgqwtzas.supabase.co").replace(/\/+$/, "")
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbG...y59s"
+    const res = await fetch(`${url}/auth/v1/settings`, {
+      headers: { apikey: key },
+    })
+    if (!res.ok) return null
+    const settings = (await res.json()) as { external?: Record<string, boolean> }
+    return Boolean(settings.external?.google)
+  } catch {
+    return null
+  }
+}
+
+/**
  * Registra el cliente global y escucha cambios de sesión.
  * Importante: siempre renderiza a los hijos. Si antes se bloqueaba el árbol
  * hasta terminar la inicialización, toda la app quedaba sin HTML en el

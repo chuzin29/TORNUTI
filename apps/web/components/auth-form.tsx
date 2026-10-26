@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import StretchyButton from "@/components/StretchyButton"
 import { useToast } from "@/components/providers/toast-provider"
 import { useTornuti } from "@/components/providers/tornuti-provider"
-import { getSupabaseClient } from "@/components/providers/supabase-provider"
+import { getSupabaseClient, isGoogleEnabled } from "@/components/providers/supabase-provider"
 import { Loader2 } from "lucide-react"
 
 type Mode = "login" | "register"
@@ -56,6 +56,17 @@ export function AuthForm({ mode, redirectTo }: { mode: Mode; redirectTo?: string
     setError("")
     try {
       setLoading(true)
+      /* Primero se pregunta si el proyecto tiene el proveedor activo: con
+         Google apagado en el panel, `signInWithOAuth` no falla — te manda a
+         una página de JSON crudo de Supabase. Se corta antes, con mensaje. */
+      const google = await isGoogleEnabled()
+      if (google === false) {
+        setError(
+          "Google todavía no está activado en el proyecto de Supabase. Entra con tu correo y contraseña — todo lo demás funciona igual.",
+        )
+        setLoading(false)
+        return
+      }
       const supabase = getSupabaseClient()
       const origin =
         typeof window === "undefined" ? "" : window.location.origin
