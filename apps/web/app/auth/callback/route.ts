@@ -15,9 +15,10 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     try {
-      await supabase.auth.exchangeCodeForSession(code)
+      const { error } = await supabase.auth.exchangeCodeForSession(code)
+      // Código reusado, expirado o rechazado: se regresa al login sin sesión.
+      if (error) return NextResponse.redirect(new URL("/login", request.url))
     } catch {
-      // Código reusado o expirado: se regresa a la portada sin sesión.
       return NextResponse.redirect(new URL("/login", request.url))
     }
   }
