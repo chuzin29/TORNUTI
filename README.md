@@ -55,64 +55,58 @@ El proyecto está construido con Next.js y NestJS, usa PostgreSQL y se puede des
 
 ## Inicio rápido
 
-Requisitos: Node.js 20 o superior, npm 10 o superior y PostgreSQL 14 o superior. Docker es opcional.
+Requisitos: Node.js 18 o superior y npm 10 o superior.
+
+### Opción 1: Modo demostración (sin base de datos)
+
+El modo demostración funciona sin instalar PostgreSQL ni levantar la API. La
+sesión, las inscripciones y los torneos creados se guardan en `localStorage`.
 
 ```bash
-git clone https://github.com/chuzin29/TORNUTI.git
-cd TORNUTI
-npm install
+# 1. Instalar dependencias
+npm install --legacy-peer-deps
 
+# 2. Levantar solo la web
+cd apps/web
+npm run dev
+```
+
+La aplicación queda disponible en: **http://localhost:3000**
+
+### Opción 2: Modo completo (con API)
+
+Si tienes PostgreSQL 14 o superior:
+
+```bash
+# 1. Instalar dependencias
+npm install --legacy-peer-deps
+
+# 2. Configurar la API
 cp apps/api/.env.example apps/api/.env
-# Edita apps/api/.env con tu DATABASE_URL, DIRECT_URL y JWT_SECRET.
+# Edita apps/api/.env con tu DATABASE_URL y JWT_SECRET
 
-docker compose up -d db
-npm run db:deploy
-npm run db:seed
+# 3. Levantar web y API juntos
 npm run dev
 ```
 
 La aplicación queda disponible en:
-
 - Web: `http://localhost:3000`
 - API: `http://localhost:3001/api`
 - Swagger: `http://localhost:3001/api/docs`
-- Salud: `http://localhost:3001/api/health`
 
-Si no tienes Docker, crea una base de datos en un servicio compatible con PostgreSQL, copia la cadena de conexión en `apps/api/.env` y ejecuta los mismos comandos de base de datos.
+## Modo demostración
 
-### Variables de entorno
-
-El archivo `apps/api/.env.example` documenta todas las variables del backend:
-
-| Variable | Uso |
-| --- | --- |
-| `DATABASE_URL` | Conexión usada por Prisma en tiempo de ejecución. |
-| `DIRECT_URL` | Conexión directa para migraciones, útil con poolers. |
-| `JWT_SECRET` | Secreto de firma de tokens. Debe ser largo y privado. |
-| `JWT_EXPIRES_IN` | Vigencia del token, por ejemplo `7d`. |
-| `CORS_ORIGIN` | Orígenes permitidos, separados por coma. |
-| `PORT` | Puerto de la API. Por defecto `3001`. |
-| `NODE_ENV` | `development`, `test` o `production`. |
-
-El frontend usa una sola variable pública:
-
-```bash
-NEXT_PUBLIC_API_URL="http://localhost:3001/api"
-```
-
-Si no se define, la web funciona en modo de demostración local y guarda sesión, inscripciones, equipos y torneos creados en `localStorage`. Si se define, el inicio de sesión y el registro se validan contra la API real. El resto de la interfaz conserva su capa de demostración para que el producto se pueda recorrer sin configurar una base de datos.
+- Cualquier correo válido y una contraseña de 6+ caracteres abren sesión.
+- Los datos se guardan solo en tu navegador.
+- No se envía nada a un servidor externo.
 
 ## Cuentas de demostración
 
-El seed crea estas cuentas:
-
 | Rol | Correo | Contraseña |
-| --- | --- | --- |
+|---|---|---|
 | Jugador | `jugador@tornuti.app` | `tornuti123` |
 | Organizador | `organiza@tornuti.app` | `tornuti123` |
 | Administración | `admin@tornuti.app` | `tornuti123` |
-
-En modo local, cualquier correo válido y una contraseña de seis o más caracteres abren una sesión de demostración. No se envía nada a un servidor.
 
 ## Estructura del repositorio
 

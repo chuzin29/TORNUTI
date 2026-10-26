@@ -12,8 +12,8 @@
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.3.0",
-    "@supabase/ssr": "^2.45.0",
-    "@supabase/supabase-js": "^2.45.0",
+    "@supabase/ssr": "0.5.2",
+    "@supabase/supabase-js": "2.114.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",
     "next": "^15.5.28",
